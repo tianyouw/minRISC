@@ -10,5 +10,11 @@ minRISC is a trusted embedded system for code execution using open-source techno
 - `Quartus/` Quartus FPGA project
 - `VexRiscvSocSoftware/` Source code for C programs to run on the VexRiscv processor
 
+## Guide
+To update the Quartus project after making changes to VexRiscv:
+ 1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"`
+ 2. `mv Briey* ../Quartus`
+ 3. Open the project in Quartus and recompile.
+
 ## Info
 After programming the board, LEDG should count up to 6 and then LEDG7 should turn on. KEY0 resets the processor.
