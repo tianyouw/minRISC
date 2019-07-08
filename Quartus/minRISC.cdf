@@ -4,7 +4,7 @@ JedecChain;
 	DefaultMfr(6E);
 
 	P ActionCode(Cfg)
-		Device PartName(EP4CE115F29) Path("C:/Users/Tian/AppData/Local/Packages/CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc/LocalState/rootfs/home/tian/FYDP/Quartus/") File("minRISC.sof") MfrSpec(OpMask(1));
+		Device PartName(EP4CE115F29) Path("output_files/") File("minRISC.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 
