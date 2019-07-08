@@ -5,6 +5,7 @@ minRISC is a trusted embedded system for code execution using open-source techno
 - Quartus Prime Standard Edition 18.1.0.625
 - Altera (Terasic) DE2-115 Development Board
 - SiFive Prebuilt RISC‑V GCC Toolchain v2019.05.3
+- Follow https://github.com/tianyouw/VexRiscv#dependencies
 
 ## Contents
 - `Quartus/` Quartus FPGA project
