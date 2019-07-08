@@ -463,10 +463,10 @@ Briey soc (
       .io_asyncReset(~KEY[0]),
       .io_axiClk(sysClock),
       .io_vgaClk(1'b0),                                  // VGA disabled
-      .io_jtag_tms(GPIO[0]),
-      .io_jtag_tdi(GPIO[1]),
-      .io_jtag_tdo(GPIO[2]),
-      .io_jtag_tck(GPIO[3]),
+      .io_jtag_tms(),                                    // JTAG disabled
+      .io_jtag_tdi(),
+      .io_jtag_tdo(),
+      .io_jtag_tck(),
       .io_sdram_ADDR(DRAM_ADDR),
       .io_sdram_BA(DRAM_BA),
       .io_sdram_DQ_read(DRAM_DQ),
