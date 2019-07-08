@@ -18,4 +18,5 @@ To update the Quartus project after making changes to VexRiscv:
  3. Open the project in Quartus and recompile.
 
 ## Info
-After programming the board, LEDG[7:0] should count up in binary. KEY0 resets the processor.
+After programming the board, LEDG[7:0] should count up in binary.
+KEY0 resets the processor, KEY1 (hold down) interrupts the processor.
