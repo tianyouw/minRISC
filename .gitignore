@@ -17,7 +17,7 @@
 *.qws
 *.rpt
 *.smsg
-*.sof
+# *.sof Keep bitstream
 *.sopc_builder
 *.summary
 *.tcl
