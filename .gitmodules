@@ -1,6 +1,6 @@
-[submodule "VexRiscvSocSoftware"]
-	path = VexRiscvSocSoftware
-	url = https://github.com/SpinalHDL/VexRiscvSocSoftware.git
 [submodule "VexRiscv"]
 	path = VexRiscv
-	url = https://github.com/SpinalHDL/VexRiscv.git
+	url = git@github.com:tianyouw/VexRiscv.git
+[submodule "VexRiscvSocSoftware"]
+	path = VexRiscvSocSoftware
+	url = git@github.com:tianyouw/VexRiscvSocSoftware.git
