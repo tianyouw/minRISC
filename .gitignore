@@ -26,6 +26,7 @@
 *example*
 *sopc_*
  *.sdc
+ *.sld
 
 # ignore Quartus II generated folders
 */db/
