@@ -23,10 +23,13 @@ minRISC is a trusted embedded system for code execution using open-source techno
  3. Open `sof_to_pof.cof`.
  4. Scroll to the bottom of the window and click `Generate`.
  5. Connect the board through the USB blaster port and power it on.
- 6. Launch `Programmer (Quartus Prime 18.1)`.
- 7. Open `minRISCFlash.cdf`.
- 8. Ensure `USB-Blaster` is selected under `Hardware Setup...`.
- 9. Click `Start` to begin programming. This will take a few minutes.
+ 6. Toggle the `RUN <-> PROG` switch at the bottom left of the board to `PROG`.
+ 7. Launch `Programmer (Quartus Prime 18.1)`.
+ 8. Open `minRISCFlash.cdf`.
+ 9. Ensure `USB-Blaster` is selected under `Hardware Setup...`.
+ 10. Click `Start` to begin programming. This will take a few minutes.
+ 11. Toggle the `RUN <-> PROG` switch to `RUN`.
+ 12. Power cycle the board. The programmed design should be running.
 
 ## Info
 After programming the board, LEDG[7:0] should count up in binary.
