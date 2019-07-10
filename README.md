@@ -35,6 +35,7 @@ minRISC is a trusted embedded system for code execution using open-source techno
 ## Info
 After programming the board, LEDG0 should light up and the Dhrystone benchmark will run.
 After the benchmark, `LEDR[17:0]` and `LEDG[7:0]` will display the resultant DMIPS/MHz in binary coded decimal (`LEDR.LEDG` DMIPS/MHz).
+
 `KEY0` resets the processor, `KEY1` (hold down) interrupts the processor.
 
 Current settings results in a performance of 1.31 DMIPS/MHz.
