@@ -447,9 +447,18 @@ inout            [6:0]      EX_IO;
 wire sysClock;
 wire [31:0] io_sdram_DQ_write;
 wire io_sdram_DQ_writeEnable;
-wire [5:0] io_gpioA_write_unused;
+wire [4:0] io_gpioA_write_unused;
 
 assign DRAM_DQ[31:0] = io_sdram_DQ_writeEnable == 1'b1 ? io_sdram_DQ_write[31:0] : 32'bz;
+
+assign HEX0[6:0] = {7{1'd1}};
+assign HEX1[6:0] = {7{1'd1}};
+assign HEX2[6:0] = {7{1'd1}};
+assign HEX3[6:0] = {7{1'd1}};
+assign HEX4[6:0] = {7{1'd1}};
+assign HEX5[6:0] = {7{1'd1}};
+assign HEX6[6:0] = {7{1'd1}};
+assign HEX7[6:0] = {7{1'd1}};
 
 sys_pll pll (
     .ref_clk_clk        (CLOCK_50), // ref_clk.clk
@@ -479,9 +488,10 @@ Briey soc (
       .io_sdram_RASn(DRAM_RAS_N),
       .io_sdram_WEn(DRAM_WE_N),
       .io_gpioA_read({14'd0, SW[17:0]}),
-      .io_gpioA_write({io_gpioA_write_unused[5:0],
+      .io_gpioA_write({io_gpioA_write_unused[4:0],
+                       LEDG[8],
                        LEDR[17:0],
-                       LEDG[7:0]}),                      // 6 bits unconnected
+                       LEDG[7:0]}),                      // 5 bits unconnected
       .io_gpioA_writeEnable(),                           // Unused
       .io_gpioB_read(32'd0),                             // GPIO B unused
       .io_gpioB_write(),
