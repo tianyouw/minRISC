@@ -15,6 +15,7 @@ minRISC is a trusted embedded system for code execution using open-source techno
 ### To update the Quartus project after making changes to VexRiscv:
  1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"`
  2. `mv Briey* ../Quartus`
+ 3. `rm -rf db incremental_db` to delete the compiler cache so that .bin changes will be recognized.
  3. Open the project in Quartus and recompile.
 
 ### To program the board permanently:
@@ -32,5 +33,8 @@ minRISC is a trusted embedded system for code execution using open-source techno
  12. Power cycle the board. The programmed design should be running.
 
 ## Info
-After programming the board, LEDG[7:0] should count up in binary.
-KEY0 resets the processor, KEY1 (hold down) interrupts the processor.
+After programming the board, LEDG0 should light up and the Dhrystone benchmark will run.
+After the benchmark, `LEDR[17:0]` and `LEDG[7:0]` will display the resultant DMIPS/MHz in binary coded decimal (`LEDR.LEDG` DMIPS/MHz).
+`KEY0` resets the processor, `KEY1` (hold down) interrupts the processor.
+
+Current settings results in a performance of 1.31 DMIPS/MHz.
