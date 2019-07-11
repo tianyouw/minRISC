@@ -1,5 +1,15 @@
-# minRISC: Free and Open Platform Security
+# minRISC: Free and Open Platform Security <!-- omit in toc -->
 minRISC is a trusted embedded system for code execution using open-source technology and well-known and tested cryptographic practices.
+
+## Table of Contents <!-- omit in toc -->
+- [Requirements](#Requirements)
+- [Contents](#Contents)
+- [Guides](#Guides)
+  - [To update the Quartus project after making changes to VexRiscv:](#To-update-the-Quartus-project-after-making-changes-to-VexRiscv)
+  - [To program the board permanently:](#To-program-the-board-permanently)
+- [Info](#Info)
+  - [Dhrystone Benchmark](#Dhrystone-Benchmark)
+  - [Memory Test (SDRAM)](#Memory-Test-SDRAM)
 
 ## Requirements
 - Quartus Prime Standard Edition 18.1.0.625
@@ -16,7 +26,7 @@ minRISC is a trusted embedded system for code execution using open-source techno
 - `VexRiscv/` 32-bit RISC-V processor implemented in SpinalHDL which generates Verilog or VHDL
 - `VexRiscvSocSoftware/` Source code for C programs to run on the VexRiscv processor
 
-## Guide
+## Guides
 ### To update the Quartus project after making changes to VexRiscv:
  1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"` will trigger the Scala build tool to generate Briey.v and associated *.bin files.
  2. `mv Briey* ../Quartus` moves the generated Verilog and binary files to the Quartus project directory.
