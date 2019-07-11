@@ -5,8 +5,8 @@ minRISC is a trusted embedded system for code execution using open-source techno
 - [Requirements](#Requirements)
 - [Contents](#Contents)
 - [Guides](#Guides)
-  - [To update the Quartus project after making changes to VexRiscv:](#To-update-the-Quartus-project-after-making-changes-to-VexRiscv)
-  - [To program the board permanently:](#To-program-the-board-permanently)
+  - [To update the Quartus project after making changes to VexRiscv](#To-update-the-Quartus-project-after-making-changes-to-VexRiscv)
+  - [To program the board permanently](#To-program-the-board-permanently)
 - [Info](#Info)
   - [Dhrystone Benchmark](#Dhrystone-Benchmark)
   - [Memory Test (SDRAM)](#Memory-Test-SDRAM)
@@ -27,13 +27,13 @@ minRISC is a trusted embedded system for code execution using open-source techno
 - `VexRiscvSocSoftware/` Source code for C programs to run on the VexRiscv processor
 
 ## Guides
-### To update the Quartus project after making changes to VexRiscv:
+### To update the Quartus project after making changes to VexRiscv
  1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"` will trigger the Scala build tool to generate Briey.v and associated *.bin files.
  2. `mv Briey* ../Quartus` moves the generated Verilog and binary files to the Quartus project directory.
  3. `rm -rf db incremental_db` deletes the compiler cache so that *.bin changes will be recognized.
  3. Open the project in Quartus and recompile.
 
-### To program the board permanently:
+### To program the board permanently
  1. Open the project in Quartus.
  2. Go to `File`, `Convert Programming Files...`, `Open Conversion Setup Data...`.
  3. Open `sof_to_pof.cof`.
