@@ -7,9 +7,9 @@ minRISC is a trusted embedded system for code execution using open-source techno
     - [Windows](http://fpgasoftware.intel.com/?edition=standard&platform=windows&download_manager=direct)
 - Altera (Terasic) [DE2-115](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=502) Development Board
 - SiFive Prebuilt RISC‑V GCC Toolchain v2019.05.3
-   - [Ubuntu](https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.2.0-2019.05.3-x86_64-linux-ubuntu14.tar.gz)
-   - [Windows](https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.2.0-2019.05.3-x86_64-w64-mingw32.zip)
-- Follow these [instructions](https://github.com/tianyouw/VexRiscv#dependencies)
+   - [Ubuntu](https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.2.0-2019.05.3-x86_64-linux-ubuntu14.tar.gz) (direct download)
+   - [Windows](https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.2.0-2019.05.3-x86_64-w64-mingw32.zip) (direct download)
+- Follow the instructions [*here*](https://github.com/tianyouw/VexRiscv#dependencies)
 
 ## Contents
 - `Quartus/` Quartus FPGA project
