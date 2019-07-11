@@ -13,9 +13,9 @@ minRISC is a trusted embedded system for code execution using open-source techno
 
 ## Guide
 ### To update the Quartus project after making changes to VexRiscv:
- 1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"`
- 2. `mv Briey* ../Quartus`
- 3. `rm -rf db incremental_db` to delete the compiler cache so that .bin changes will be recognized.
+ 1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"` will trigger the Scala build tool to generate Briey.v and associated *.bin files.
+ 2. `mv Briey* ../Quartus` moves the generated Verilog and binary files to the Quartus project directory.
+ 3. `rm -rf db incremental_db` deletes the compiler cache so that *.bin changes will be recognized.
  3. Open the project in Quartus and recompile.
 
 ### To program the board permanently:
@@ -33,9 +33,23 @@ minRISC is a trusted embedded system for code execution using open-source techno
  12. Power cycle the board. The programmed design should be running.
 
 ## Info
-After programming the board, LEDG0 should light up and the Dhrystone benchmark will run.
-After the benchmark, `LEDR[17:0]` and `LEDG[7:0]` will display the resultant DMIPS/MHz in binary coded decimal (`LEDR.LEDG` DMIPS/MHz).
-
 `KEY0` resets the processor, `KEY1` (hold down) interrupts the processor.
 
-Current settings results in a performance of 1.31 DMIPS/MHz.
+### Dhrystone Benchmark
+Bitstream located at `Quartus/output_files/minRISC.sof` (default).
+
+After programming the board, `LEDG0` should light up and the Dhrystone benchmark will run.
+After the benchmark, `LEDR[17:0]` and `LEDG[7:0]` will display the resultant DMIPS/MHz in binary coded decimal (`LEDR.LEDG` DMIPS/MHz).
+
+Current settings results in a performance of **1.31** DMIPS/MHz.
+
+### Memory Test (SDRAM)
+Bitstream located at `Quartus/output_files/minRISCMemTest.sof`.
+
+After programming the board, `LEDG8` (located in the 7-segment cluster) should light up and the memory test will run. 
+The test takes around a minute per run to complete.
+
+After the first run of the test, `LEDG[7:0]` should light up to indicate writing and reading back of SDRAM has been successful.
+Press `KEY1` after the first test has displayed its result to start the second test. `LEDR[17:0]` should light up afterwards to indicate that the intentionally injected error has been detected.
+
+Any test results other than the ones above indicate there is an error.
