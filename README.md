@@ -31,9 +31,8 @@ minRISC is a trusted embedded system for code execution using open-source techno
  1. `cd VexRiscv; sbt "runMain vexriscv.demo.BrieyDe2"` will trigger the Scala build tool to generate Briey.v and associated *.bin files.
  2. `mv Briey* ../Quartus` moves the generated Verilog and binary files to the Quartus project directory.
  3. `rm -rf db incremental_db` deletes the compiler cache so that *.bin changes will be recognized.
+    - Or `cd Quartus` `compileFlash.sh` (`compileFlash.bat`) cleans the cache, compiles, and flashes FPGA (skip 4.).
  4. Open the project in Quartus and recompile.
-#### Alternative steps >2 <!-- omit in toc -->
- 1. `cd Quartus` `compileflash.[sh|bat]` cleans the cache, compiles, and flashes FPGA.
 
 ### To program the board permanently
  1. Open the project in Quartus.
@@ -43,8 +42,9 @@ minRISC is a trusted embedded system for code execution using open-source techno
  5. Connect the board through the USB blaster port and power it on.
  6. Toggle the `RUN <-> PROG` switch at the bottom left of the board to `PROG`.
  7. Launch `Programmer (Quartus Prime 18.1)`.
+    - Or `quartus_pgm .\minRISCFlash.cdf` (`quartus_pgm.exe .\minRISCFlash.cdf`) (skip to 11.)
  8. Open `minRISCFlash.cdf`.
- 9. Ensure `USB-Blaster` is selected under `Hardware Setup...`.
+ 9.  Ensure `USB-Blaster` is selected under `Hardware Setup...`.
  10. Click `Start` to begin programming. This will take a few minutes.
  11. Toggle the `RUN <-> PROG` switch to `RUN`.
  12. Power cycle the board. The programmed design should be running.
