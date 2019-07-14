@@ -27,6 +27,7 @@
 *sopc_*
  *.sdc
  *.sld
+ *.map
 
 # ignore Quartus II generated folders
 */db/
