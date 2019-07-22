@@ -1,0 +1,2 @@
+# Prolific UART to USB
+SUBSYSTEM=="usb", ATTR{idVendor}=="067b", ATTR{idProduct}=="2303", MODE="0666"
