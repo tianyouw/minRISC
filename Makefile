@@ -22,7 +22,7 @@ recompile-vexriscv:
 	pushd VexRiscv; \
 	sbt "runMain vexriscv.demo.BrieyDe2"; \
 	for file in $$(ls Briey*); do \
-		if [[ $$(stat --printf '%h\n' "$${file}") == 1 ]]; then ln "$${file}" ../Quartus; fi; \
+		if [[ $$(stat --printf '%h\n' "$${file}") == 1 ]]; then ln -f "$${file}" ../Quartus; fi; \
 	done; \
 	popd;
 
