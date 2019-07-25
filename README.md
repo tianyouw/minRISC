@@ -70,13 +70,36 @@ minRISC is a trusted embedded system for code execution using open-source techno
 ## Info
 `KEY0` resets the processor, `KEY1` (hold down) interrupts the processor.
 
-Memory test is currently the default loaded in `Quartus/output_files/minRISC.sof`.
+Bubblesort is currently the default loaded in `Quartus/output_files/minRISC.sof`.
 
 ### Dhrystone Benchmark
 After programming the board, `LEDG0` should light up and the Dhrystone benchmark will run.
 After the benchmark, `LEDR[17:0]` and `LEDG[7:0]` will display the resultant DMIPS/MHz in binary coded decimal (`LEDR.LEDG` DMIPS/MHz).
 
 Current settings results in a performance of **1.31** DMIPS/MHz.
+
+### Bubblesort
+After programming the board, `LEDG8` (located in the 7-segment cluster) should light up and the bubblesort test will run. However, the test runs quickly enough that the test result is immediately displayed.
+It takes a few seconds for LEDs to light up due to startup routines clearing the memory authentication section of SDRAM running before main() is called.
+The test takes less than a second to complete.
+
+After running the test, `LEDG[7:0]` should light up to indicate that the unordered input array has been sorted correctly in ascending order.
+`LEDR[17:0]` will light up if the resultant array is not sorted in ascending order, possibly due to memory issues.
+
+UART output:
+```
+Bubblesort BEGIN
+
+Input array:
+[80, 82, 9, 69, 43, 7, 59, 12, 78, 26, 35, 50, 62, 3, 88, 14]
+
+Bubblesort complete after 120 iterations.
+
+Result array:
+[3, 7, 9, 12, 14, 26, 35, 43, 50, 59, 62, 69, 78, 80, 82, 88]
+
+Bubblesort PASS
+```
 
 ### Memory Test (SDRAM)
 After programming the board, `LEDG8` (located in the 7-segment cluster) should light up and the memory test will run.
