@@ -42,130 +42,130 @@
 
 module DE2_115_GOLDEN_TOP(
 
-	//////// CLOCK //////////
-	CLOCK_50,
+    //////// CLOCK //////////
+    CLOCK_50,
     CLOCK2_50,
     CLOCK3_50,
-	ENETCLK_25,
+    ENETCLK_25,
 
-	//////// Sma //////////
-	SMA_CLKIN,
-	SMA_CLKOUT,
+    //////// Sma //////////
+    SMA_CLKIN,
+    SMA_CLKOUT,
 
-	//////// LED //////////
-	LEDG,
-	LEDR,
+    //////// LED //////////
+    LEDG,
+    LEDR,
 
-	//////// KEY //////////
-	KEY,
+    //////// KEY //////////
+    KEY,
 
-	//////// SW //////////
-	SW,
+    //////// SW //////////
+    SW,
 
-	//////// SEG7 //////////
-	HEX0,
-	HEX1,
-	HEX2,
-	HEX3,
-	HEX4,
-	HEX5,
-	HEX6,
-	HEX7,
+    //////// SEG7 //////////
+    HEX0,
+    HEX1,
+    HEX2,
+    HEX3,
+    HEX4,
+    HEX5,
+    HEX6,
+    HEX7,
 
-	//////// LCD //////////
-	LCD_BLON,
-	LCD_DATA,
-	LCD_EN,
-	LCD_ON,
-	LCD_RS,
-	LCD_RW,
+    //////// LCD //////////
+    LCD_BLON,
+    LCD_DATA,
+    LCD_EN,
+    LCD_ON,
+    LCD_RS,
+    LCD_RW,
 
-	//////// RS232 //////////
-	UART_CTS,
-	UART_RTS,
-	UART_RXD,
-	UART_TXD,
+    //////// RS232 //////////
+    UART_CTS,
+    UART_RTS,
+    UART_RXD,
+    UART_TXD,
 
-	//////// PS2 //////////
-	PS2_CLK,
-	PS2_DAT,
-	PS2_CLK2,
-	PS2_DAT2,
+    //////// PS2 //////////
+    PS2_CLK,
+    PS2_DAT,
+    PS2_CLK2,
+    PS2_DAT2,
 
-	//////// SDCARD //////////
-	SD_CLK,
-	SD_CMD,
-	SD_DAT,
-	SD_WP_N,
+    //////// SDCARD //////////
+    SD_CLK,
+    SD_CMD,
+    SD_DAT,
+    SD_WP_N,
 
-	//////// VGA //////////
-	VGA_B,
-	VGA_BLANK_N,
-	VGA_CLK,
-	VGA_G,
-	VGA_HS,
-	VGA_R,
-	VGA_SYNC_N,
-	VGA_VS,
+    //////// VGA //////////
+    VGA_B,
+    VGA_BLANK_N,
+    VGA_CLK,
+    VGA_G,
+    VGA_HS,
+    VGA_R,
+    VGA_SYNC_N,
+    VGA_VS,
 
-	//////// Audio //////////
-	AUD_ADCDAT,
-	AUD_ADCLRCK,
-	AUD_BCLK,
-	AUD_DACDAT,
-	AUD_DACLRCK,
-	AUD_XCK,
+    //////// Audio //////////
+    AUD_ADCDAT,
+    AUD_ADCLRCK,
+    AUD_BCLK,
+    AUD_DACDAT,
+    AUD_DACLRCK,
+    AUD_XCK,
 
-	//////// I2C for EEPROM //////////
-	EEP_I2C_SCLK,
-	EEP_I2C_SDAT,
+    //////// I2C for EEPROM //////////
+    EEP_I2C_SCLK,
+    EEP_I2C_SDAT,
 
-	//////// I2C for Audio and Tv-Decode //////////
-	I2C_SCLK,
-	I2C_SDAT,
+    //////// I2C for Audio and Tv-Decode //////////
+    I2C_SCLK,
+    I2C_SDAT,
 
-	//////// Ethernet 0 //////////
-	ENET0_GTX_CLK,
-	ENET0_INT_N,
-	ENET0_MDC,
-	ENET0_MDIO,
-	ENET0_RST_N,
-	ENET0_RX_CLK,
-	ENET0_RX_COL,
-	ENET0_RX_CRS,
-	ENET0_RX_DATA,
-	ENET0_RX_DV,
-	ENET0_RX_ER,
-	ENET0_TX_CLK,
-	ENET0_TX_DATA,
-	ENET0_TX_EN,
-	ENET0_TX_ER,
-	ENET0_LINK100,
+    //////// Ethernet 0 //////////
+    ENET0_GTX_CLK,
+    ENET0_INT_N,
+    ENET0_MDC,
+    ENET0_MDIO,
+    ENET0_RST_N,
+    ENET0_RX_CLK,
+    ENET0_RX_COL,
+    ENET0_RX_CRS,
+    ENET0_RX_DATA,
+    ENET0_RX_DV,
+    ENET0_RX_ER,
+    ENET0_TX_CLK,
+    ENET0_TX_DATA,
+    ENET0_TX_EN,
+    ENET0_TX_ER,
+    ENET0_LINK100,
 
-	//////// Ethernet 1 //////////
-	ENET1_GTX_CLK,
-	ENET1_INT_N,
-	ENET1_MDC,
-	ENET1_MDIO,
-	ENET1_RST_N,
-	ENET1_RX_CLK,
-	ENET1_RX_COL,
-	ENET1_RX_CRS,
-	ENET1_RX_DATA,
-	ENET1_RX_DV,
-	ENET1_RX_ER,
-	ENET1_TX_CLK,
-	ENET1_TX_DATA,
-	ENET1_TX_EN,
-	ENET1_TX_ER,
-	ENET1_LINK100,
+    //////// Ethernet 1 //////////
+    ENET1_GTX_CLK,
+    ENET1_INT_N,
+    ENET1_MDC,
+    ENET1_MDIO,
+    ENET1_RST_N,
+    ENET1_RX_CLK,
+    ENET1_RX_COL,
+    ENET1_RX_CRS,
+    ENET1_RX_DATA,
+    ENET1_RX_DV,
+    ENET1_RX_ER,
+    ENET1_TX_CLK,
+    ENET1_TX_DATA,
+    ENET1_TX_EN,
+    ENET1_TX_ER,
+    ENET1_LINK100,
 
-	//////// TV Decoder //////////
-	TD_CLK27,
-	TD_DATA,
-	TD_HS,
-	TD_RESET_N,
-	TD_VS,
+    //////// TV Decoder //////////
+    TD_CLK27,
+    TD_DATA,
+    TD_HS,
+    TD_RESET_N,
+    TD_VS,
 
     /////// USB OTG controller
     OTG_DATA,
@@ -179,61 +179,61 @@ module DE2_115_GOLDEN_TOP(
     OTG_DACK_N,
     OTG_FSPEED,
     OTG_LSPEED,
-	//////// IR Receiver //////////
-	IRDA_RXD,
+    //////// IR Receiver //////////
+    IRDA_RXD,
 
-	//////// SDRAM //////////
-	DRAM_ADDR,
-	DRAM_BA,
-	DRAM_CAS_N,
-	DRAM_CKE,
-	DRAM_CLK,
-	DRAM_CS_N,
-	DRAM_DQ,
-	DRAM_DQM,
-	DRAM_RAS_N,
-	DRAM_WE_N,
+    //////// SDRAM //////////
+    DRAM_ADDR,
+    DRAM_BA,
+    DRAM_CAS_N,
+    DRAM_CKE,
+    DRAM_CLK,
+    DRAM_CS_N,
+    DRAM_DQ,
+    DRAM_DQM,
+    DRAM_RAS_N,
+    DRAM_WE_N,
 
-	//////// SRAM //////////
-	SRAM_ADDR,
-	SRAM_CE_N,
-	SRAM_DQ,
-	SRAM_LB_N,
-	SRAM_OE_N,
-	SRAM_UB_N,
-	SRAM_WE_N,
+    //////// SRAM //////////
+    SRAM_ADDR,
+    SRAM_CE_N,
+    SRAM_DQ,
+    SRAM_LB_N,
+    SRAM_OE_N,
+    SRAM_UB_N,
+    SRAM_WE_N,
 
-	//////// Flash //////////
-	FL_ADDR,
-	FL_CE_N,
-	FL_DQ,
-	FL_OE_N,
-	FL_RST_N,
-	FL_RY,
-	FL_WE_N,
-	FL_WP_N,
+    //////// Flash //////////
+    FL_ADDR,
+    FL_CE_N,
+    FL_DQ,
+    FL_OE_N,
+    FL_RST_N,
+    FL_RY,
+    FL_WE_N,
+    FL_WP_N,
 
-	//////// GPIO //////////
-	GPIO,
+    //////// GPIO //////////
+    GPIO,
 
-	//////// HSMC (LVDS) //////////
-//	HSMC_CLKIN_N1,
-//	HSMC_CLKIN_N2,
-	HSMC_CLKIN_P1,
-	HSMC_CLKIN_P2,
-	HSMC_CLKIN0,
-//	HSMC_CLKOUT_N1,
-//	HSMC_CLKOUT_N2,
-	HSMC_CLKOUT_P1,
-	HSMC_CLKOUT_P2,
-	HSMC_CLKOUT0,
-	HSMC_D,
-//	HSMC_RX_D_N,
-	HSMC_RX_D_P,
-//	HSMC_TX_D_N,
-	HSMC_TX_D_P,
+    //////// HSMC (LVDS) //////////
+    // HSMC_CLKIN_N1,
+    // HSMC_CLKIN_N2,
+    // HSMC_CLKIN_P1,
+    // HSMC_CLKIN_P2,
+    // HSMC_CLKIN0,
+    // HSMC_CLKOUT_N1,
+    // HSMC_CLKOUT_N2,
+    // HSMC_CLKOUT_P1,
+    // HSMC_CLKOUT_P2,
+    // HSMC_CLKOUT0,
+    // HSMC_D,
+    // HSMC_RX_D_N,
+    // HSMC_RX_D_P,
+    // HSMC_TX_D_N,
+    // HSMC_TX_D_P,
     //////// EXTEND IO //////////
-    EX_IO	
+    // EX_IO
 );
 
 //=======================================================
@@ -423,28 +423,29 @@ inout            [35:0]     GPIO;
 
 //////////// HSMC (LVDS) //////////
 
-//input                     HSMC_CLKIN_N1;
-//input                     HSMC_CLKIN_N2;
-input                       HSMC_CLKIN_P1;
-input                       HSMC_CLKIN_P2;
-input                       HSMC_CLKIN0;
-//output                    HSMC_CLKOUT_N1;
-//output                    HSMC_CLKOUT_N2;
-output                      HSMC_CLKOUT_P1;
-output                      HSMC_CLKOUT_P2;
-output                      HSMC_CLKOUT0;
-inout            [3:0]      HSMC_D;
-//input         [16:0]      HSMC_RX_D_N;
-input           [16:0]      HSMC_RX_D_P;
-//output        [16:0]      HSMC_TX_D_N;
-output          [16:0]      HSMC_TX_D_P;
+// input                       HSMC_CLKIN_N1;
+// input                       HSMC_CLKIN_N2;
+// input                       HSMC_CLKIN_P1;
+// input                       HSMC_CLKIN_P2;
+// input                       HSMC_CLKIN0;
+// output                      HSMC_CLKOUT_N1;
+// output                      HSMC_CLKOUT_N2;
+// output                      HSMC_CLKOUT_P1;
+// output                      HSMC_CLKOUT_P2;
+// output                      HSMC_CLKOUT0;
+// inout            [3:0]      HSMC_D;
+// input            [16:0]     HSMC_RX_D_N;
+// input            [16:0]     HSMC_RX_D_P;
+// output           [16:0]     HSMC_TX_D_N;
+// output           [16:0]     HSMC_TX_D_P;
 
 //////// EXTEND IO //////////
-inout            [6:0]      EX_IO;
+// inout            [6:0]      EX_IO;
 
 //////// START SOC //////////
 
 wire sysClock;
+wire slowClock;
 wire [31:0] io_sdram_DQ_write;
 wire io_sdram_DQ_writeEnable;
 wire [4:0] io_gpioA_write_unused;
@@ -460,53 +461,51 @@ assign HEX5[6:0] = {7{1'd1}};
 assign HEX6[6:0] = {7{1'd1}};
 assign HEX7[6:0] = {7{1'd1}};
 
-sys_pll pll (
-    .ref_clk_clk        (CLOCK_50), // ref_clk.clk
-    .ref_reset_reset    (1'bx),     // ref_reset.reset
-    .sys_clk_clk        (sysClock), // sys_clk.clk
-    .sdram_clk_clk      (DRAM_CLK), // sdram_clk.clk
-    .reset_source_reset ()          // reset_source.reset
+alt_pll pll (
+	.inclk0 (CLOCK_50), // Input clock from board XTAL
+	.c0     (sysClock), // Outputs clock to SoC
+	.c1     (DRAM_CLK)  // Outputs sysClock with -54 degree phase to SDRAM
 );
 
-Briey soc (
-      .io_asyncReset(~KEY[0]),
-      .io_axiClk(sysClock),
-      .io_vgaClk(1'b0),                                  // VGA disabled
-      .io_jtag_tms(),                                    // JTAG disabled
-      .io_jtag_tdi(),
-      .io_jtag_tdo(),
-      .io_jtag_tck(),
-      .io_sdram_ADDR(DRAM_ADDR),
-      .io_sdram_BA(DRAM_BA),
-      .io_sdram_DQ_read(DRAM_DQ),
-      .io_sdram_DQ_write(io_sdram_DQ_write),
-      .io_sdram_DQ_writeEnable(io_sdram_DQ_writeEnable),
-      .io_sdram_DQM(DRAM_DQM),
-      .io_sdram_CASn(DRAM_CAS_N),
-      .io_sdram_CKE(DRAM_CKE),
-      .io_sdram_CSn(DRAM_CS_N),
-      .io_sdram_RASn(DRAM_RAS_N),
-      .io_sdram_WEn(DRAM_WE_N),
-      .io_gpioA_read({14'd0, SW[17:0]}),
-      .io_gpioA_write({io_gpioA_write_unused[4:0],
-                       LEDG[8],
-                       LEDR[17:0],
-                       LEDG[7:0]}),                      // 5 bits unconnected
-      .io_gpioA_writeEnable(),                           // Unused
-      .io_gpioB_read(32'd0),                             // GPIO B unused
-      .io_gpioB_write(),
-      .io_gpioB_writeEnable(),
-      .io_uart_txd(UART_TXD),
-      .io_uart_rxd(UART_RXD),
-      .io_vga_vSync(),                                   // VGA disabled
-      .io_vga_hSync(),
-      .io_vga_colorEn(),
-      .io_vga_color_r(),
-      .io_vga_color_g(),
-      .io_vga_color_b(),
-      .io_timerExternal_clear(1'b0),
-      .io_timerExternal_tick(1'b0),
-      .io_coreInterrupt(~KEY[1])
-);
+ Briey soc (
+       .io_asyncReset(~KEY[0]),
+       .io_axiClk(sysClock),
+       .io_vgaClk(1'b0),                                  // VGA disabled
+       .io_jtag_tms(),                                    // JTAG disabled
+       .io_jtag_tdi(),
+       .io_jtag_tdo(),
+       .io_jtag_tck(),
+       .io_sdram_ADDR(DRAM_ADDR),
+       .io_sdram_BA(DRAM_BA),
+       .io_sdram_DQ_read(DRAM_DQ),
+       .io_sdram_DQ_write(io_sdram_DQ_write),
+       .io_sdram_DQ_writeEnable(io_sdram_DQ_writeEnable),
+       .io_sdram_DQM(DRAM_DQM),
+       .io_sdram_CASn(DRAM_CAS_N),
+       .io_sdram_CKE(DRAM_CKE),
+       .io_sdram_CSn(DRAM_CS_N),
+       .io_sdram_RASn(DRAM_RAS_N),
+       .io_sdram_WEn(DRAM_WE_N),
+       .io_gpioA_read({14'd0, SW[17:0]}),
+       .io_gpioA_write({io_gpioA_write_unused[4:0],
+                        LEDG[8],
+                        LEDR[17:0],
+                        LEDG[7:0]}),                      // 5 bits unconnected
+       .io_gpioA_writeEnable(),                           // Unused
+       .io_gpioB_read(32'd0),                             // GPIO B unused
+       .io_gpioB_write(),
+       .io_gpioB_writeEnable(),
+       .io_uart_txd(UART_TXD),
+       .io_uart_rxd(UART_RXD),
+       .io_vga_vSync(),                                   // VGA disabled
+       .io_vga_hSync(),
+       .io_vga_colorEn(),
+       .io_vga_color_r(),
+       .io_vga_color_g(),
+       .io_vga_color_b(),
+       .io_timerExternal_clear(1'b0),
+       .io_timerExternal_tick(1'b0),
+       .io_coreInterrupt(~KEY[1])
+ );
 
 endmodule
