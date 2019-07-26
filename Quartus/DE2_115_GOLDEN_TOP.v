@@ -445,7 +445,6 @@ inout            [35:0]     GPIO;
 //////// START SOC //////////
 
 wire sysClock;
-wire slowClock;
 wire [31:0] io_sdram_DQ_write;
 wire io_sdram_DQ_writeEnable;
 wire [4:0] io_gpioA_write_unused;
