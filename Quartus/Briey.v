@@ -1,5 +1,5 @@
 // Generator : SpinalHDL v1.3.6    git head : 9bf01e7f360e003fac1dd5ca8b8f4bffec0e52b8
-// Date      : 25/07/2019, 17:40:22
+// Date      : 29/12/2019, 00:50:28
 // Component : Briey
 
 
@@ -7464,10 +7464,10 @@ module VexRiscv (
   wire  _zz_229_;
   wire  _zz_230_;
   wire  _zz_231_;
-  wire  _zz_232_;
-  wire [1:0] _zz_233_;
+  wire [1:0] _zz_232_;
+  wire  _zz_233_;
   wire  _zz_234_;
-  wire  _zz_235_;
+  wire [1:0] _zz_235_;
   wire  _zz_236_;
   wire  _zz_237_;
   wire  _zz_238_;
@@ -7475,12 +7475,12 @@ module VexRiscv (
   wire  _zz_240_;
   wire  _zz_241_;
   wire  _zz_242_;
-  wire [5:0] _zz_243_;
-  wire  _zz_244_;
+  wire  _zz_243_;
+  wire [5:0] _zz_244_;
   wire  _zz_245_;
   wire  _zz_246_;
   wire  _zz_247_;
-  wire [1:0] _zz_248_;
+  wire  _zz_248_;
   wire [1:0] _zz_249_;
   wire [1:0] _zz_250_;
   wire  _zz_251_;
@@ -7761,8 +7761,8 @@ module VexRiscv (
   wire [1:0] memory_MEMORY_ADDRESS_LOW;
   wire [1:0] execute_MEMORY_ADDRESS_LOW;
   wire  decode_MEMORY_MANAGMENT;
-  wire [31:0] execute_NEXT_PC2;
-  wire  decode_CSR_READ_OPCODE;
+  wire  decode_CSR_WRITE_OPCODE;
+  wire  execute_TARGET_MISSMATCH2;
   wire [33:0] execute_MUL_LH;
   wire  execute_PREDICTION_CONTEXT_hazard;
   wire  execute_PREDICTION_CONTEXT_hit;
@@ -7774,7 +7774,6 @@ module VexRiscv (
   wire [21:0] decode_PREDICTION_CONTEXT_line_source;
   wire [1:0] decode_PREDICTION_CONTEXT_line_branchWish;
   wire [31:0] decode_PREDICTION_CONTEXT_line_target;
-  wire  decode_DO_EBREAK;
   wire  decode_SRC_LESS_UNSIGNED;
   wire [31:0] writeBack_FORMAL_PC_NEXT;
   wire [31:0] memory_FORMAL_PC_NEXT;
@@ -7789,6 +7788,7 @@ module VexRiscv (
   wire `EnvCtrlEnum_defaultEncoding_type _zz_8_;
   wire `EnvCtrlEnum_defaultEncoding_type _zz_9_;
   wire `EnvCtrlEnum_defaultEncoding_type _zz_10_;
+  wire  decode_CSR_READ_OPCODE;
   wire `AluCtrlEnum_defaultEncoding_type decode_ALU_CTRL;
   wire `AluCtrlEnum_defaultEncoding_type _zz_11_;
   wire `AluCtrlEnum_defaultEncoding_type _zz_12_;
@@ -7798,19 +7798,18 @@ module VexRiscv (
   wire  decode_IS_CSR;
   wire  execute_BYPASSABLE_MEMORY_STAGE;
   wire  decode_BYPASSABLE_MEMORY_STAGE;
+  wire  execute_BRANCH_DO;
+  wire [31:0] execute_NEXT_PC2;
   wire `Src2CtrlEnum_defaultEncoding_type decode_SRC2_CTRL;
   wire `Src2CtrlEnum_defaultEncoding_type _zz_14_;
   wire `Src2CtrlEnum_defaultEncoding_type _zz_15_;
   wire `Src2CtrlEnum_defaultEncoding_type _zz_16_;
-  wire  execute_TARGET_MISSMATCH2;
   wire [31:0] execute_REGFILE_WRITE_DATA;
   wire [31:0] execute_SHIFT_RIGHT;
   wire `Src1CtrlEnum_defaultEncoding_type decode_SRC1_CTRL;
   wire `Src1CtrlEnum_defaultEncoding_type _zz_17_;
   wire `Src1CtrlEnum_defaultEncoding_type _zz_18_;
   wire `Src1CtrlEnum_defaultEncoding_type _zz_19_;
-  wire  decode_CSR_WRITE_OPCODE;
-  wire  execute_BRANCH_DO;
   wire  decode_IS_DIV;
   wire  memory_IS_MUL;
   wire  execute_IS_MUL;
@@ -7833,6 +7832,7 @@ module VexRiscv (
   wire `BranchCtrlEnum_defaultEncoding_type _zz_25_;
   wire `BranchCtrlEnum_defaultEncoding_type _zz_26_;
   wire `BranchCtrlEnum_defaultEncoding_type _zz_27_;
+  wire  decode_DO_EBREAK;
   wire  execute_DO_EBREAK;
   wire  decode_IS_EBREAK;
   wire  _zz_28_;
@@ -8273,6 +8273,7 @@ module VexRiscv (
   reg [32:0] memory_DivPlugin_rs1;
   reg [31:0] memory_DivPlugin_rs2;
   reg [64:0] memory_DivPlugin_accumulator;
+  wire  memory_DivPlugin_frontendOk;
   reg  memory_DivPlugin_div_needRevert;
   reg  memory_DivPlugin_div_counter_willIncrement;
   reg  memory_DivPlugin_div_counter_willClear;
@@ -8388,6 +8389,7 @@ module VexRiscv (
   reg [31:0] DebugPlugin_busReadDataReg;
   reg  _zz_191_;
   reg  DebugPlugin_resetIt_regNext;
+  reg  decode_to_execute_DO_EBREAK;
   reg `BranchCtrlEnum_defaultEncoding_type decode_to_execute_BRANCH_CTRL;
   reg [31:0] execute_to_memory_MUL_LL;
   reg `ShiftCtrlEnum_defaultEncoding_type decode_to_execute_SHIFT_CTRL;
@@ -8402,7 +8404,6 @@ module VexRiscv (
   reg  decode_to_execute_MEMORY_WR;
   reg  execute_to_memory_MEMORY_WR;
   reg  memory_to_writeBack_MEMORY_WR;
-  reg [31:0] execute_to_memory_BRANCH_CALC;
   reg  decode_to_execute_BYPASSABLE_EXECUTE_STAGE;
   reg  decode_to_execute_IS_MUL;
   reg  execute_to_memory_IS_MUL;
@@ -8412,14 +8413,13 @@ module VexRiscv (
   reg  decode_to_execute_MEMORY_ENABLE;
   reg  execute_to_memory_MEMORY_ENABLE;
   reg  memory_to_writeBack_MEMORY_ENABLE;
-  reg  execute_to_memory_BRANCH_DO;
-  reg  decode_to_execute_CSR_WRITE_OPCODE;
   reg `Src1CtrlEnum_defaultEncoding_type decode_to_execute_SRC1_CTRL;
   reg [31:0] execute_to_memory_SHIFT_RIGHT;
   reg [31:0] execute_to_memory_REGFILE_WRITE_DATA;
   reg [31:0] memory_to_writeBack_REGFILE_WRITE_DATA;
-  reg  execute_to_memory_TARGET_MISSMATCH2;
   reg `Src2CtrlEnum_defaultEncoding_type decode_to_execute_SRC2_CTRL;
+  reg [31:0] execute_to_memory_NEXT_PC2;
+  reg  execute_to_memory_BRANCH_DO;
   reg  decode_to_execute_BYPASSABLE_MEMORY_STAGE;
   reg  execute_to_memory_BYPASSABLE_MEMORY_STAGE;
   reg  decode_to_execute_IS_CSR;
@@ -8428,6 +8428,7 @@ module VexRiscv (
   reg [31:0] decode_to_execute_RS2;
   reg [31:0] decode_to_execute_RS1;
   reg `AluCtrlEnum_defaultEncoding_type decode_to_execute_ALU_CTRL;
+  reg  decode_to_execute_CSR_READ_OPCODE;
   reg `EnvCtrlEnum_defaultEncoding_type decode_to_execute_ENV_CTRL;
   reg `EnvCtrlEnum_defaultEncoding_type execute_to_memory_ENV_CTRL;
   reg `EnvCtrlEnum_defaultEncoding_type memory_to_writeBack_ENV_CTRL;
@@ -8443,7 +8444,6 @@ module VexRiscv (
   reg [31:0] memory_to_writeBack_FORMAL_PC_NEXT;
   reg  decode_to_execute_SRC_USE_SUB_LESS;
   reg  decode_to_execute_SRC_LESS_UNSIGNED;
-  reg  decode_to_execute_DO_EBREAK;
   reg  decode_to_execute_PREDICTION_CONTEXT_hazard;
   reg  decode_to_execute_PREDICTION_CONTEXT_hit;
   reg [21:0] decode_to_execute_PREDICTION_CONTEXT_line_source;
@@ -8455,8 +8455,9 @@ module VexRiscv (
   reg [1:0] execute_to_memory_PREDICTION_CONTEXT_line_branchWish;
   reg [31:0] execute_to_memory_PREDICTION_CONTEXT_line_target;
   reg [33:0] execute_to_memory_MUL_LH;
-  reg  decode_to_execute_CSR_READ_OPCODE;
-  reg [31:0] execute_to_memory_NEXT_PC2;
+  reg  execute_to_memory_TARGET_MISSMATCH2;
+  reg  decode_to_execute_CSR_WRITE_OPCODE;
+  reg [31:0] execute_to_memory_BRANCH_CALC;
   reg  decode_to_execute_MEMORY_MANAGMENT;
   reg [1:0] execute_to_memory_MEMORY_ADDRESS_LOW;
   reg [1:0] memory_to_writeBack_MEMORY_ADDRESS_LOW;
@@ -8558,27 +8559,27 @@ module VexRiscv (
   assign _zz_226_ = ({decodeExceptionPort_valid,IBusCachedPlugin_decodeExceptionPort_valid} != (2'b00));
   assign _zz_227_ = (execute_arbitration_isValid && execute_DO_EBREAK);
   assign _zz_228_ = (({writeBack_arbitration_isValid,memory_arbitration_isValid} != (2'b00)) == 1'b0);
-  assign _zz_229_ = (! memory_DivPlugin_div_done);
-  assign _zz_230_ = (CsrPlugin_hadException || CsrPlugin_interruptJump);
-  assign _zz_231_ = (writeBack_arbitration_isValid && (writeBack_ENV_CTRL == `EnvCtrlEnum_defaultEncoding_XRET));
-  assign _zz_232_ = (DebugPlugin_stepIt && IBusCachedPlugin_incomingInstruction);
-  assign _zz_233_ = writeBack_INSTRUCTION[29 : 28];
-  assign _zz_234_ = (! IBusCachedPlugin_iBusRsp_readyForError);
-  assign _zz_235_ = (writeBack_arbitration_isValid && writeBack_MEMORY_ENABLE);
-  assign _zz_236_ = (! memory_arbitration_isStuck);
-  assign _zz_237_ = (writeBack_arbitration_isValid && writeBack_REGFILE_WRITE_VALID);
-  assign _zz_238_ = (1'b0 || (! 1'b1));
-  assign _zz_239_ = (memory_arbitration_isValid && memory_REGFILE_WRITE_VALID);
-  assign _zz_240_ = (1'b0 || (! memory_BYPASSABLE_MEMORY_STAGE));
-  assign _zz_241_ = (execute_arbitration_isValid && execute_REGFILE_WRITE_VALID);
-  assign _zz_242_ = (1'b0 || (! execute_BYPASSABLE_EXECUTE_STAGE));
-  assign _zz_243_ = debug_bus_cmd_payload_address[7 : 2];
-  assign _zz_244_ = (CsrPlugin_mstatus_MIE || (CsrPlugin_privilege < (2'b11)));
-  assign _zz_245_ = ((_zz_186_ && 1'b1) && (! 1'b0));
-  assign _zz_246_ = ((_zz_187_ && 1'b1) && (! 1'b0));
-  assign _zz_247_ = ((_zz_188_ && 1'b1) && (! 1'b0));
-  assign _zz_248_ = writeBack_INSTRUCTION[13 : 12];
-  assign _zz_249_ = execute_INSTRUCTION[13 : 12];
+  assign _zz_229_ = (CsrPlugin_hadException || CsrPlugin_interruptJump);
+  assign _zz_230_ = (writeBack_arbitration_isValid && (writeBack_ENV_CTRL == `EnvCtrlEnum_defaultEncoding_XRET));
+  assign _zz_231_ = (DebugPlugin_stepIt && IBusCachedPlugin_incomingInstruction);
+  assign _zz_232_ = writeBack_INSTRUCTION[29 : 28];
+  assign _zz_233_ = (! IBusCachedPlugin_iBusRsp_readyForError);
+  assign _zz_234_ = (writeBack_arbitration_isValid && writeBack_MEMORY_ENABLE);
+  assign _zz_235_ = execute_INSTRUCTION[13 : 12];
+  assign _zz_236_ = (memory_DivPlugin_frontendOk && (! memory_DivPlugin_div_done));
+  assign _zz_237_ = (! memory_arbitration_isStuck);
+  assign _zz_238_ = (writeBack_arbitration_isValid && writeBack_REGFILE_WRITE_VALID);
+  assign _zz_239_ = (1'b0 || (! 1'b1));
+  assign _zz_240_ = (memory_arbitration_isValid && memory_REGFILE_WRITE_VALID);
+  assign _zz_241_ = (1'b0 || (! memory_BYPASSABLE_MEMORY_STAGE));
+  assign _zz_242_ = (execute_arbitration_isValid && execute_REGFILE_WRITE_VALID);
+  assign _zz_243_ = (1'b0 || (! execute_BYPASSABLE_EXECUTE_STAGE));
+  assign _zz_244_ = debug_bus_cmd_payload_address[7 : 2];
+  assign _zz_245_ = (CsrPlugin_mstatus_MIE || (CsrPlugin_privilege < (2'b11)));
+  assign _zz_246_ = ((_zz_186_ && 1'b1) && (! 1'b0));
+  assign _zz_247_ = ((_zz_187_ && 1'b1) && (! 1'b0));
+  assign _zz_248_ = ((_zz_188_ && 1'b1) && (! 1'b0));
+  assign _zz_249_ = writeBack_INSTRUCTION[13 : 12];
   assign _zz_250_ = writeBack_INSTRUCTION[13 : 12];
   assign _zz_251_ = execute_INSTRUCTION[13];
   assign _zz_252_ = (_zz_110_ - (4'b0001));
@@ -9650,8 +9651,8 @@ module VexRiscv (
   assign memory_MEMORY_ADDRESS_LOW = execute_to_memory_MEMORY_ADDRESS_LOW;
   assign execute_MEMORY_ADDRESS_LOW = _zz_93_;
   assign decode_MEMORY_MANAGMENT = _zz_84_;
-  assign execute_NEXT_PC2 = _zz_35_;
-  assign decode_CSR_READ_OPCODE = _zz_31_;
+  assign decode_CSR_WRITE_OPCODE = _zz_32_;
+  assign execute_TARGET_MISSMATCH2 = _zz_34_;
   assign execute_MUL_LH = _zz_43_;
   assign execute_PREDICTION_CONTEXT_hazard = decode_to_execute_PREDICTION_CONTEXT_hazard;
   assign execute_PREDICTION_CONTEXT_hit = decode_to_execute_PREDICTION_CONTEXT_hit;
@@ -9663,7 +9664,6 @@ module VexRiscv (
   assign decode_PREDICTION_CONTEXT_line_source = _zz_99_;
   assign decode_PREDICTION_CONTEXT_line_branchWish = _zz_100_;
   assign decode_PREDICTION_CONTEXT_line_target = _zz_101_;
-  assign decode_DO_EBREAK = _zz_28_;
   assign decode_SRC_LESS_UNSIGNED = _zz_87_;
   assign writeBack_FORMAL_PC_NEXT = memory_to_writeBack_FORMAL_PC_NEXT;
   assign memory_FORMAL_PC_NEXT = execute_to_memory_FORMAL_PC_NEXT;
@@ -9674,6 +9674,7 @@ module VexRiscv (
   assign _zz_6_ = _zz_7_;
   assign decode_ENV_CTRL = _zz_8_;
   assign _zz_9_ = _zz_10_;
+  assign decode_CSR_READ_OPCODE = _zz_31_;
   assign decode_ALU_CTRL = _zz_11_;
   assign _zz_12_ = _zz_13_;
   assign decode_SRC2_FORCE_ZERO = _zz_57_;
@@ -9681,15 +9682,14 @@ module VexRiscv (
   assign decode_IS_CSR = _zz_80_;
   assign execute_BYPASSABLE_MEMORY_STAGE = decode_to_execute_BYPASSABLE_MEMORY_STAGE;
   assign decode_BYPASSABLE_MEMORY_STAGE = _zz_86_;
+  assign execute_BRANCH_DO = _zz_38_;
+  assign execute_NEXT_PC2 = _zz_35_;
   assign decode_SRC2_CTRL = _zz_14_;
   assign _zz_15_ = _zz_16_;
-  assign execute_TARGET_MISSMATCH2 = _zz_34_;
   assign execute_REGFILE_WRITE_DATA = _zz_59_;
   assign execute_SHIFT_RIGHT = _zz_47_;
   assign decode_SRC1_CTRL = _zz_17_;
   assign _zz_18_ = _zz_19_;
-  assign decode_CSR_WRITE_OPCODE = _zz_32_;
-  assign execute_BRANCH_DO = _zz_38_;
   assign decode_IS_DIV = _zz_85_;
   assign memory_IS_MUL = execute_to_memory_IS_MUL;
   assign execute_IS_MUL = decode_to_execute_IS_MUL;
@@ -9707,6 +9707,7 @@ module VexRiscv (
   assign execute_MUL_LL = _zz_44_;
   assign decode_BRANCH_CTRL = _zz_25_;
   assign _zz_26_ = _zz_27_;
+  assign decode_DO_EBREAK = _zz_28_;
   assign execute_DO_EBREAK = decode_to_execute_DO_EBREAK;
   assign decode_IS_EBREAK = _zz_82_;
   assign execute_CSR_READ_OPCODE = decode_to_execute_CSR_READ_OPCODE;
@@ -10059,7 +10060,7 @@ module VexRiscv (
   always @ (*) begin
     memory_arbitration_haltItself = 1'b0;
     if(_zz_221_)begin
-      if(_zz_229_)begin
+      if(((! memory_DivPlugin_frontendOk) || (! memory_DivPlugin_div_done)))begin
         memory_arbitration_haltItself = 1'b1;
       end
     end
@@ -10120,10 +10121,10 @@ module VexRiscv (
     if(DBusCachedPlugin_exceptionBus_valid)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
-    if(_zz_230_)begin
+    if(_zz_229_)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
-    if(_zz_231_)begin
+    if(_zz_230_)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
   end
@@ -10137,10 +10138,10 @@ module VexRiscv (
     if(({CsrPlugin_exceptionPortCtrl_exceptionValids_writeBack,{CsrPlugin_exceptionPortCtrl_exceptionValids_memory,{CsrPlugin_exceptionPortCtrl_exceptionValids_execute,CsrPlugin_exceptionPortCtrl_exceptionValids_decode}}} != (4'b0000)))begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_230_)begin
+    if(_zz_229_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_231_)begin
+    if(_zz_230_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
     if(_zz_227_)begin
@@ -10151,7 +10152,7 @@ module VexRiscv (
     if(DebugPlugin_haltIt)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_232_)begin
+    if(_zz_231_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
   end
@@ -10187,21 +10188,21 @@ module VexRiscv (
 
   always @ (*) begin
     CsrPlugin_jumpInterface_valid = 1'b0;
-    if(_zz_230_)begin
+    if(_zz_229_)begin
       CsrPlugin_jumpInterface_valid = 1'b1;
     end
-    if(_zz_231_)begin
+    if(_zz_230_)begin
       CsrPlugin_jumpInterface_valid = 1'b1;
     end
   end
 
   always @ (*) begin
     CsrPlugin_jumpInterface_payload = (32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx);
-    if(_zz_230_)begin
+    if(_zz_229_)begin
       CsrPlugin_jumpInterface_payload = {CsrPlugin_xtvec_base,(2'b00)};
     end
-    if(_zz_231_)begin
-      case(_zz_233_)
+    if(_zz_230_)begin
+      case(_zz_232_)
         2'b11 : begin
           CsrPlugin_jumpInterface_payload = CsrPlugin_mepc;
         end
@@ -10429,7 +10430,7 @@ module VexRiscv (
     if(_zz_223_)begin
       IBusCachedPlugin_rsp_redoFetch = 1'b1;
     end
-    if(_zz_234_)begin
+    if(_zz_233_)begin
       IBusCachedPlugin_rsp_redoFetch = 1'b0;
     end
   end
@@ -10439,7 +10440,7 @@ module VexRiscv (
     if(_zz_223_)begin
       _zz_202_ = 1'b1;
     end
-    if(_zz_234_)begin
+    if(_zz_233_)begin
       _zz_202_ = 1'b0;
     end
   end
@@ -10520,7 +10521,7 @@ module VexRiscv (
   assign _zz_210_ = writeBack_REGFILE_WRITE_DATA;
   always @ (*) begin
     DBusCachedPlugin_redoBranch_valid = 1'b0;
-    if(_zz_235_)begin
+    if(_zz_234_)begin
       if(dataCache_1__io_cpu_redo)begin
         DBusCachedPlugin_redoBranch_valid = 1'b1;
       end
@@ -10530,7 +10531,7 @@ module VexRiscv (
   assign DBusCachedPlugin_redoBranch_payload = writeBack_PC;
   always @ (*) begin
     DBusCachedPlugin_exceptionBus_valid = 1'b0;
-    if(_zz_235_)begin
+    if(_zz_234_)begin
       if(dataCache_1__io_cpu_writeBack_accessError)begin
         DBusCachedPlugin_exceptionBus_valid = 1'b1;
       end
@@ -10549,7 +10550,7 @@ module VexRiscv (
   assign DBusCachedPlugin_exceptionBus_payload_badAddr = writeBack_REGFILE_WRITE_DATA;
   always @ (*) begin
     DBusCachedPlugin_exceptionBus_payload_code = (4'bxxxx);
-    if(_zz_235_)begin
+    if(_zz_234_)begin
       if(dataCache_1__io_cpu_writeBack_accessError)begin
         DBusCachedPlugin_exceptionBus_payload_code = {1'd0, _zz_269_};
       end
@@ -10630,7 +10631,7 @@ module VexRiscv (
   end
 
   always @ (*) begin
-    case(_zz_248_)
+    case(_zz_249_)
       2'b00 : begin
         writeBack_DBusCachedPlugin_rspFormated = _zz_132_;
       end
@@ -10916,7 +10917,7 @@ module VexRiscv (
   assign execute_MulPlugin_a = execute_SRC1;
   assign execute_MulPlugin_b = execute_SRC2;
   always @ (*) begin
-    case(_zz_249_)
+    case(_zz_235_)
       2'b01 : begin
         execute_MulPlugin_aSigned = 1'b1;
       end
@@ -10930,7 +10931,7 @@ module VexRiscv (
   end
 
   always @ (*) begin
-    case(_zz_249_)
+    case(_zz_235_)
       2'b01 : begin
         execute_MulPlugin_bSigned = 1'b1;
       end
@@ -10955,10 +10956,11 @@ module VexRiscv (
   assign _zz_41_ = ($signed(execute_MulPlugin_aHigh) * $signed(execute_MulPlugin_bHigh));
   assign _zz_40_ = ($signed(_zz_304_) + $signed(_zz_312_));
   assign writeBack_MulPlugin_result = ($signed(_zz_313_) + $signed(_zz_314_));
+  assign memory_DivPlugin_frontendOk = 1'b1;
   always @ (*) begin
     memory_DivPlugin_div_counter_willIncrement = 1'b0;
     if(_zz_221_)begin
-      if(_zz_229_)begin
+      if(_zz_236_)begin
         memory_DivPlugin_div_counter_willIncrement = 1'b1;
       end
     end
@@ -10966,7 +10968,7 @@ module VexRiscv (
 
   always @ (*) begin
     memory_DivPlugin_div_counter_willClear = 1'b0;
-    if(_zz_236_)begin
+    if(_zz_237_)begin
       memory_DivPlugin_div_counter_willClear = 1'b1;
     end
   end
@@ -10997,22 +10999,22 @@ module VexRiscv (
 
   always @ (*) begin
     _zz_164_ = 1'b0;
-    if(_zz_237_)begin
-      if(_zz_238_)begin
+    if(_zz_238_)begin
+      if(_zz_239_)begin
         if(_zz_170_)begin
           _zz_164_ = 1'b1;
         end
       end
     end
-    if(_zz_239_)begin
-      if(_zz_240_)begin
+    if(_zz_240_)begin
+      if(_zz_241_)begin
         if(_zz_172_)begin
           _zz_164_ = 1'b1;
         end
       end
     end
-    if(_zz_241_)begin
-      if(_zz_242_)begin
+    if(_zz_242_)begin
+      if(_zz_243_)begin
         if(_zz_174_)begin
           _zz_164_ = 1'b1;
         end
@@ -11025,22 +11027,22 @@ module VexRiscv (
 
   always @ (*) begin
     _zz_165_ = 1'b0;
-    if(_zz_237_)begin
-      if(_zz_238_)begin
+    if(_zz_238_)begin
+      if(_zz_239_)begin
         if(_zz_171_)begin
           _zz_165_ = 1'b1;
         end
       end
     end
-    if(_zz_239_)begin
-      if(_zz_240_)begin
+    if(_zz_240_)begin
+      if(_zz_241_)begin
         if(_zz_173_)begin
           _zz_165_ = 1'b1;
         end
       end
     end
-    if(_zz_241_)begin
-      if(_zz_242_)begin
+    if(_zz_242_)begin
+      if(_zz_243_)begin
         if(_zz_175_)begin
           _zz_165_ = 1'b1;
         end
@@ -11392,7 +11394,7 @@ module VexRiscv (
   always @ (*) begin
     debug_bus_cmd_ready = 1'b1;
     if(debug_bus_cmd_valid)begin
-      case(_zz_243_)
+      case(_zz_244_)
         6'b000000 : begin
         end
         6'b000001 : begin
@@ -11420,7 +11422,7 @@ module VexRiscv (
   always @ (*) begin
     IBusCachedPlugin_injectionPort_valid = 1'b0;
     if(debug_bus_cmd_valid)begin
-      case(_zz_243_)
+      case(_zz_244_)
         6'b000000 : begin
         end
         6'b000001 : begin
@@ -11646,19 +11648,19 @@ module VexRiscv (
         CsrPlugin_exceptionPortCtrl_exceptionValidsRegs_writeBack <= 1'b0;
       end
       CsrPlugin_interrupt_valid <= 1'b0;
-      if(_zz_244_)begin
-        if(_zz_245_)begin
-          CsrPlugin_interrupt_valid <= 1'b1;
-        end
+      if(_zz_245_)begin
         if(_zz_246_)begin
           CsrPlugin_interrupt_valid <= 1'b1;
         end
         if(_zz_247_)begin
           CsrPlugin_interrupt_valid <= 1'b1;
         end
+        if(_zz_248_)begin
+          CsrPlugin_interrupt_valid <= 1'b1;
+        end
       end
       CsrPlugin_hadException <= CsrPlugin_exception;
-      if(_zz_230_)begin
+      if(_zz_229_)begin
         case(CsrPlugin_targetPrivilege)
           2'b11 : begin
             CsrPlugin_mstatus_MIE <= 1'b0;
@@ -11669,8 +11671,8 @@ module VexRiscv (
           end
         endcase
       end
-      if(_zz_231_)begin
-        case(_zz_233_)
+      if(_zz_230_)begin
+        case(_zz_232_)
           2'b11 : begin
             CsrPlugin_mstatus_MPP <= (2'b00);
             CsrPlugin_mstatus_MIE <= CsrPlugin_mstatus_MPIE;
@@ -11791,7 +11793,7 @@ module VexRiscv (
       memory_DivPlugin_div_done <= 1'b0;
     end
     if(_zz_221_)begin
-      if(_zz_229_)begin
+      if(_zz_236_)begin
         memory_DivPlugin_rs1[31 : 0] <= _zz_320_[31:0];
         memory_DivPlugin_accumulator[31 : 0] <= ((! _zz_159_[32]) ? _zz_321_ : _zz_322_);
         if((memory_DivPlugin_div_counter_value == (6'b100000)))begin
@@ -11799,7 +11801,7 @@ module VexRiscv (
         end
       end
     end
-    if(_zz_236_)begin
+    if(_zz_237_)begin
       memory_DivPlugin_accumulator <= (65'b00000000000000000000000000000000000000000000000000000000000000000);
       memory_DivPlugin_rs1 <= ((_zz_162_ ? (~ _zz_163_) : _zz_163_) + _zz_329_);
       memory_DivPlugin_rs2 <= ((_zz_161_ ? (~ execute_RS2) : execute_RS2) + _zz_331_);
@@ -11828,21 +11830,21 @@ module VexRiscv (
       CsrPlugin_exceptionPortCtrl_exceptionContext_code <= DBusCachedPlugin_exceptionBus_payload_code;
       CsrPlugin_exceptionPortCtrl_exceptionContext_badAddr <= DBusCachedPlugin_exceptionBus_payload_badAddr;
     end
-    if(_zz_244_)begin
-      if(_zz_245_)begin
+    if(_zz_245_)begin
+      if(_zz_246_)begin
         CsrPlugin_interrupt_code <= (4'b0111);
         CsrPlugin_interrupt_targetPrivilege <= (2'b11);
       end
-      if(_zz_246_)begin
+      if(_zz_247_)begin
         CsrPlugin_interrupt_code <= (4'b0011);
         CsrPlugin_interrupt_targetPrivilege <= (2'b11);
       end
-      if(_zz_247_)begin
+      if(_zz_248_)begin
         CsrPlugin_interrupt_code <= (4'b1011);
         CsrPlugin_interrupt_targetPrivilege <= (2'b11);
       end
     end
-    if(_zz_230_)begin
+    if(_zz_229_)begin
       case(CsrPlugin_targetPrivilege)
         2'b11 : begin
           CsrPlugin_mcause_interrupt <= (! CsrPlugin_hadException);
@@ -11855,6 +11857,9 @@ module VexRiscv (
         default : begin
         end
       endcase
+    end
+    if((! execute_arbitration_isStuck))begin
+      decode_to_execute_DO_EBREAK <= decode_DO_EBREAK;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_BRANCH_CTRL <= _zz_26_;
@@ -11898,9 +11903,6 @@ module VexRiscv (
     if((! writeBack_arbitration_isStuck))begin
       memory_to_writeBack_MEMORY_WR <= memory_MEMORY_WR;
     end
-    if((! memory_arbitration_isStuck))begin
-      execute_to_memory_BRANCH_CALC <= execute_BRANCH_CALC;
-    end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_BYPASSABLE_EXECUTE_STAGE <= decode_BYPASSABLE_EXECUTE_STAGE;
     end
@@ -11928,12 +11930,6 @@ module VexRiscv (
     if((! writeBack_arbitration_isStuck))begin
       memory_to_writeBack_MEMORY_ENABLE <= memory_MEMORY_ENABLE;
     end
-    if((! memory_arbitration_isStuck))begin
-      execute_to_memory_BRANCH_DO <= execute_BRANCH_DO;
-    end
-    if((! execute_arbitration_isStuck))begin
-      decode_to_execute_CSR_WRITE_OPCODE <= decode_CSR_WRITE_OPCODE;
-    end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_SRC1_CTRL <= _zz_18_;
     end
@@ -11943,11 +11939,14 @@ module VexRiscv (
     if((! memory_arbitration_isStuck))begin
       execute_to_memory_REGFILE_WRITE_DATA <= _zz_39_;
     end
-    if((! memory_arbitration_isStuck))begin
-      execute_to_memory_TARGET_MISSMATCH2 <= execute_TARGET_MISSMATCH2;
-    end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_SRC2_CTRL <= _zz_15_;
+    end
+    if((! memory_arbitration_isStuck))begin
+      execute_to_memory_NEXT_PC2 <= execute_NEXT_PC2;
+    end
+    if((! memory_arbitration_isStuck))begin
+      execute_to_memory_BRANCH_DO <= execute_BRANCH_DO;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_BYPASSABLE_MEMORY_STAGE <= decode_BYPASSABLE_MEMORY_STAGE;
@@ -11972,6 +11971,9 @@ module VexRiscv (
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_ALU_CTRL <= _zz_12_;
+    end
+    if((! execute_arbitration_isStuck))begin
+      decode_to_execute_CSR_READ_OPCODE <= decode_CSR_READ_OPCODE;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_ENV_CTRL <= _zz_9_;
@@ -12016,9 +12018,6 @@ module VexRiscv (
       decode_to_execute_SRC_LESS_UNSIGNED <= decode_SRC_LESS_UNSIGNED;
     end
     if((! execute_arbitration_isStuck))begin
-      decode_to_execute_DO_EBREAK <= decode_DO_EBREAK;
-    end
-    if((! execute_arbitration_isStuck))begin
       decode_to_execute_PREDICTION_CONTEXT_hazard <= decode_PREDICTION_CONTEXT_hazard;
       decode_to_execute_PREDICTION_CONTEXT_hit <= decode_PREDICTION_CONTEXT_hit;
       decode_to_execute_PREDICTION_CONTEXT_line_source <= decode_PREDICTION_CONTEXT_line_source;
@@ -12035,11 +12034,14 @@ module VexRiscv (
     if((! memory_arbitration_isStuck))begin
       execute_to_memory_MUL_LH <= execute_MUL_LH;
     end
+    if((! memory_arbitration_isStuck))begin
+      execute_to_memory_TARGET_MISSMATCH2 <= execute_TARGET_MISSMATCH2;
+    end
     if((! execute_arbitration_isStuck))begin
-      decode_to_execute_CSR_READ_OPCODE <= decode_CSR_READ_OPCODE;
+      decode_to_execute_CSR_WRITE_OPCODE <= decode_CSR_WRITE_OPCODE;
     end
     if((! memory_arbitration_isStuck))begin
-      execute_to_memory_NEXT_PC2 <= execute_NEXT_PC2;
+      execute_to_memory_BRANCH_CALC <= execute_BRANCH_CALC;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_MEMORY_MANAGMENT <= decode_MEMORY_MANAGMENT;
@@ -12109,7 +12111,7 @@ module VexRiscv (
         DebugPlugin_godmode <= 1'b1;
       end
       if(debug_bus_cmd_valid)begin
-        case(_zz_243_)
+        case(_zz_244_)
           6'b000000 : begin
             if(debug_bus_cmd_payload_wr)begin
               DebugPlugin_stepIt <= debug_bus_cmd_payload_data[4];
@@ -12145,7 +12147,7 @@ module VexRiscv (
           DebugPlugin_haltedByBreak <= 1'b1;
         end
       end
-      if(_zz_232_)begin
+      if(_zz_231_)begin
         if(decode_arbitration_isValid)begin
           DebugPlugin_haltIt <= 1'b1;
         end
@@ -14298,42 +14300,42 @@ module Briey (
       input   io_timerExternal_clear,
       input   io_timerExternal_tick,
       input   io_coreInterrupt);
-  wire [3:0] _zz_81_;
+  wire [3:0] _zz_79_;
+  wire [3:0] _zz_80_;
+  wire [7:0] _zz_81_;
   wire [3:0] _zz_82_;
   wire [7:0] _zz_83_;
-  wire [3:0] _zz_84_;
+  wire  _zz_84_;
   wire [7:0] _zz_85_;
   wire  _zz_86_;
-  wire [7:0] _zz_87_;
+  wire  _zz_87_;
   wire  _zz_88_;
   wire  _zz_89_;
-  wire  _zz_90_;
-  wire  _zz_91_;
-  reg  _zz_92_;
-  reg  _zz_93_;
+  reg  _zz_90_;
+  reg  _zz_91_;
+  wire  _zz_92_;
+  wire  _zz_93_;
   wire  _zz_94_;
   wire  _zz_95_;
   wire  _zz_96_;
   wire  _zz_97_;
   wire  _zz_98_;
-  wire  _zz_99_;
-  wire  _zz_100_;
+  wire [14:0] _zz_99_;
+  wire [2:0] _zz_100_;
   wire [14:0] _zz_101_;
-  wire [2:0] _zz_102_;
-  wire [14:0] _zz_103_;
-  wire [1:0] _zz_104_;
-  wire  _zz_105_;
+  wire [1:0] _zz_102_;
+  wire  _zz_103_;
+  wire [26:0] _zz_104_;
+  wire [2:0] _zz_105_;
   wire [26:0] _zz_106_;
-  wire [2:0] _zz_107_;
+  wire [1:0] _zz_107_;
   wire [26:0] _zz_108_;
   wire [1:0] _zz_109_;
-  wire [26:0] _zz_110_;
-  wire [1:0] _zz_111_;
-  wire  _zz_112_;
-  wire [19:0] _zz_113_;
-  wire [1:0] _zz_114_;
-  wire  _zz_115_;
-  wire  _zz_116_;
+  wire  _zz_110_;
+  wire [19:0] _zz_111_;
+  wire [1:0] _zz_112_;
+  wire  _zz_113_;
+  wire  _zz_114_;
   wire  bufferCC_13__io_dataOut;
   wire  bufferCC_14__io_dataOut;
   wire  axi_ram_io_axi_arw_ready;
@@ -14659,6 +14661,8 @@ module Briey (
   wire  apb3Router_1__io_outputs_4_PENABLE;
   wire  apb3Router_1__io_outputs_4_PWRITE;
   wire [31:0] apb3Router_1__io_outputs_4_PWDATA;
+  wire  _zz_115_;
+  wire  _zz_116_;
   wire  _zz_117_;
   wire  _zz_118_;
   wire  _zz_119_;
@@ -14667,8 +14671,6 @@ module Briey (
   wire  _zz_122_;
   wire  _zz_123_;
   wire  _zz_124_;
-  wire  _zz_125_;
-  wire  _zz_126_;
   reg  resetCtrl_systemResetUnbuffered;
   reg [5:0] resetCtrl_systemResetCounter = (6'b000000);
   wire [5:0] _zz_1_;
@@ -14689,13 +14691,6 @@ module Briey (
   wire  axi_core_iBus_r_payload_last;
   wire  _zz_2_;
   wire  _zz_3_;
-  wire  _zz_4_;
-  wire  _zz_5_;
-  reg  _zz_6_;
-  reg  _zz_7_;
-  reg [2:0] _zz_8_;
-  reg [2:0] _zz_9_;
-  wire [2:0] _zz_10_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
@@ -14704,13 +14699,13 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
-  reg  _zz_11_;
-  reg  _zz_12_;
-  reg [31:0] _zz_13_;
-  reg [31:0] _zz_14_;
-  reg [3:0] _zz_15_;
-  reg [2:0] _zz_16_;
-  reg  _zz_17_;
+  reg  _zz_4_;
+  reg  _zz_5_;
+  reg [31:0] _zz_6_;
+  reg [31:0] _zz_7_;
+  reg [3:0] _zz_8_;
+  reg [2:0] _zz_9_;
+  reg  _zz_10_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
@@ -14719,13 +14714,13 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
-  reg  _zz_18_;
-  reg  _zz_19_;
-  reg [31:0] _zz_20_;
-  reg [31:0] _zz_21_;
-  reg [3:0] _zz_22_;
-  reg [2:0] _zz_23_;
-  reg  _zz_24_;
+  reg  _zz_11_;
+  reg  _zz_12_;
+  reg [31:0] _zz_13_;
+  reg [31:0] _zz_14_;
+  reg [3:0] _zz_15_;
+  reg [2:0] _zz_16_;
+  reg  _zz_17_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr;
@@ -14734,17 +14729,22 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last;
+  reg  _zz_18_;
+  reg  _zz_19_;
+  reg [31:0] _zz_20_;
+  reg [31:0] _zz_21_;
+  reg [3:0] _zz_22_;
+  reg [2:0] _zz_23_;
+  reg  _zz_24_;
   reg  _zz_25_;
   reg  _zz_26_;
-  reg [31:0] _zz_27_;
-  reg [31:0] _zz_28_;
-  reg [3:0] _zz_29_;
-  reg [2:0] _zz_30_;
+  reg [2:0] _zz_27_;
+  reg [2:0] _zz_28_;
+  wire [2:0] _zz_29_;
+  wire  _zz_30_;
   reg  _zz_31_;
-  wire  _zz_32_;
+  reg  _zz_32_;
   reg  _zz_33_;
-  reg  _zz_34_;
-  reg  _zz_35_;
   wire  axi_core_dBus_arw_valid;
   wire  axi_core_dBus_arw_ready;
   wire [31:0] axi_core_dBus_arw_payload_addr;
@@ -14767,34 +14767,34 @@ module Briey (
   wire [1:0] axi_core_dBus_r_payload_resp;
   wire  axi_core_dBus_r_payload_last;
   reg  axi_core_cpu_debug_resetOut_regNext;
-  reg  _zz_36_;
-  wire  _zz_37_;
+  reg  _zz_34_;
+  wire  _zz_35_;
+  wire  _zz_36_;
+  reg  _zz_37_;
   wire  _zz_38_;
-  reg  _zz_39_;
-  wire  _zz_40_;
+  wire  _zz_39_;
+  reg  _zz_40_;
   wire  _zz_41_;
-  reg  _zz_42_;
-  wire  _zz_43_;
+  wire  _zz_42_;
+  reg  _zz_43_;
   wire  _zz_44_;
-  reg  _zz_45_;
-  wire  _zz_46_;
+  wire  _zz_45_;
+  reg  _zz_46_;
   wire  _zz_47_;
-  reg  _zz_48_;
-  wire  _zz_49_;
-  wire  _zz_50_;
-  reg  _zz_51_;
+  wire  _zz_48_;
+  reg  _zz_49_;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_valid;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_ready;
   wire [31:0] axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data;
   wire [1:0] axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last;
-  reg  _zz_52_;
-  reg [31:0] _zz_53_;
-  reg [1:0] _zz_54_;
-  reg  _zz_55_;
-  wire  _zz_56_;
-  wire  _zz_57_;
-  reg  _zz_58_;
+  reg  _zz_50_;
+  reg [31:0] _zz_51_;
+  reg [1:0] _zz_52_;
+  reg  _zz_53_;
+  wire  _zz_54_;
+  wire  _zz_55_;
+  reg  _zz_56_;
   wire  axi_vgaCtrl_io_axi_ar_halfPipe_valid;
   wire  axi_vgaCtrl_io_axi_ar_halfPipe_ready;
   wire [31:0] axi_vgaCtrl_io_axi_ar_halfPipe_payload_addr;
@@ -14809,8 +14809,8 @@ module Briey (
   reg [2:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_size;
   reg [3:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_cache;
   reg [2:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_prot;
-  wire [2:0] _zz_59_;
-  wire [2:0] _zz_60_;
+  wire [2:0] _zz_57_;
+  wire [2:0] _zz_58_;
   wire  axi_ram_io_axi_arbiter_io_output_arw_halfPipe_valid;
   wire  axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready;
   wire [14:0] axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
@@ -14832,22 +14832,22 @@ module Briey (
   wire [31:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
   wire [3:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
-  reg  _zz_61_;
-  reg [31:0] _zz_62_;
-  reg [3:0] _zz_63_;
-  reg  _zz_64_;
+  reg  _zz_59_;
+  reg [31:0] _zz_60_;
+  reg [3:0] _zz_61_;
+  reg  _zz_62_;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready;
   wire [31:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data;
   wire [3:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last;
-  reg  _zz_65_;
-  reg [31:0] _zz_66_;
-  reg [3:0] _zz_67_;
-  reg  _zz_68_;
+  reg  _zz_63_;
+  reg [31:0] _zz_64_;
+  reg [3:0] _zz_65_;
+  reg  _zz_66_;
+  wire [1:0] _zz_67_;
+  wire [1:0] _zz_68_;
   wire [1:0] _zz_69_;
-  wire [1:0] _zz_70_;
-  wire [1:0] _zz_71_;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
   wire [26:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
@@ -14869,20 +14869,20 @@ module Briey (
   wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
   wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
-  reg  _zz_72_;
-  reg [31:0] _zz_73_;
-  reg [3:0] _zz_74_;
-  reg  _zz_75_;
+  reg  _zz_70_;
+  reg [31:0] _zz_71_;
+  reg [3:0] _zz_72_;
+  reg  _zz_73_;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready;
   wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data;
   wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb;
   wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last;
-  reg  _zz_76_;
-  reg [31:0] _zz_77_;
-  reg [3:0] _zz_78_;
-  reg  _zz_79_;
-  wire [3:0] _zz_80_;
+  reg  _zz_74_;
+  reg [31:0] _zz_75_;
+  reg [3:0] _zz_76_;
+  reg  _zz_77_;
+  wire [3:0] _zz_78_;
   wire  axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_valid;
   wire  axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_ready;
   wire [19:0] axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
@@ -14909,16 +14909,16 @@ module Briey (
   reg [31:0] axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_data;
   reg [3:0] axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_strb;
   reg  axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_last;
-  assign _zz_117_ = (resetCtrl_systemResetCounter != _zz_1_);
-  assign _zz_118_ = (! streamFork_4__io_outputs_1_payload_wr);
-  assign _zz_119_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready));
-  assign _zz_120_ = (! axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid);
-  assign _zz_121_ = (! axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
-  assign _zz_122_ = (_zz_105_ && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready));
-  assign _zz_123_ = (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
-  assign _zz_124_ = (_zz_112_ && (! axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready));
-  assign _zz_125_ = (! axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
-  assign _zz_126_ = (! axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid);
+  assign _zz_115_ = (resetCtrl_systemResetCounter != _zz_1_);
+  assign _zz_116_ = (! streamFork_4__io_outputs_1_payload_wr);
+  assign _zz_117_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready));
+  assign _zz_118_ = (! axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid);
+  assign _zz_119_ = (! axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
+  assign _zz_120_ = (_zz_103_ && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready));
+  assign _zz_121_ = (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
+  assign _zz_122_ = (_zz_110_ && (! axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready));
+  assign _zz_123_ = (! axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
+  assign _zz_124_ = (! axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid);
   BufferCC_10_ bufferCC_13_ ( 
     .io_dataIn(io_asyncReset),
     .io_dataOut(bufferCC_13__io_dataOut),
@@ -15030,7 +15030,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3Gpio axi_gpioACtrl ( 
-    .io_apb_PADDR(_zz_81_),
+    .io_apb_PADDR(_zz_79_),
     .io_apb_PSEL(apb3Router_1__io_outputs_0_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_0_PENABLE),
     .io_apb_PREADY(axi_gpioACtrl_io_apb_PREADY),
@@ -15046,7 +15046,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3Gpio axi_gpioBCtrl ( 
-    .io_apb_PADDR(_zz_82_),
+    .io_apb_PADDR(_zz_80_),
     .io_apb_PSEL(apb3Router_1__io_outputs_1_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_1_PENABLE),
     .io_apb_PREADY(axi_gpioBCtrl_io_apb_PREADY),
@@ -15062,7 +15062,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   PinsecTimerCtrl axi_timerCtrl ( 
-    .io_apb_PADDR(_zz_83_),
+    .io_apb_PADDR(_zz_81_),
     .io_apb_PSEL(apb3Router_1__io_outputs_3_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_3_PENABLE),
     .io_apb_PREADY(axi_timerCtrl_io_apb_PREADY),
@@ -15077,7 +15077,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3UartCtrl axi_uartCtrl ( 
-    .io_apb_PADDR(_zz_84_),
+    .io_apb_PADDR(_zz_82_),
     .io_apb_PSEL(apb3Router_1__io_outputs_2_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_2_PENABLE),
     .io_apb_PREADY(axi_uartCtrl_io_apb_PREADY),
@@ -15102,7 +15102,7 @@ module Briey (
     .io_axi_r_ready(axi_vgaCtrl_io_axi_r_ready),
     .io_axi_r_payload_data(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_data),
     .io_axi_r_payload_last(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_last),
-    .io_apb_PADDR(_zz_85_),
+    .io_apb_PADDR(_zz_83_),
     .io_apb_PSEL(apb3Router_1__io_outputs_4_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_4_PENABLE),
     .io_apb_PREADY(axi_vgaCtrl_io_apb_PREADY),
@@ -15123,11 +15123,11 @@ module Briey (
   VexRiscv axi_core_cpu ( 
     .timerInterrupt(axi_timerCtrl_io_interrupt),
     .externalInterrupt(bufferCC_15__io_dataOut),
-    .softwareInterrupt(_zz_86_),
+    .softwareInterrupt(_zz_84_),
     .debug_bus_cmd_valid(systemDebugger_1__io_mem_cmd_valid),
     .debug_bus_cmd_ready(axi_core_cpu_debug_bus_cmd_ready),
     .debug_bus_cmd_payload_wr(systemDebugger_1__io_mem_cmd_payload_wr),
-    .debug_bus_cmd_payload_address(_zz_87_),
+    .debug_bus_cmd_payload_address(_zz_85_),
     .debug_bus_cmd_payload_data(systemDebugger_1__io_mem_cmd_payload_data),
     .debug_bus_rsp_data(axi_core_cpu_debug_bus_rsp_data),
     .debug_resetOut(axi_core_cpu_debug_resetOut),
@@ -15137,9 +15137,9 @@ module Briey (
     .iBus_cmd_payload_size(axi_core_cpu_iBus_cmd_payload_size),
     .iBus_rsp_valid(axi_core_iBus_r_valid),
     .iBus_rsp_payload_data(axi_core_iBus_r_payload_data),
-    .iBus_rsp_payload_error(_zz_88_),
+    .iBus_rsp_payload_error(_zz_86_),
     .dBus_cmd_valid(axi_core_cpu_dBus_cmd_valid),
-    .dBus_cmd_ready(_zz_89_),
+    .dBus_cmd_ready(_zz_87_),
     .dBus_cmd_payload_wr(axi_core_cpu_dBus_cmd_payload_wr),
     .dBus_cmd_payload_address(axi_core_cpu_dBus_cmd_payload_address),
     .dBus_cmd_payload_data(axi_core_cpu_dBus_cmd_payload_data),
@@ -15148,13 +15148,13 @@ module Briey (
     .dBus_cmd_payload_last(axi_core_cpu_dBus_cmd_payload_last),
     .dBus_rsp_valid(axi_core_dBus_r_valid),
     .dBus_rsp_payload_data(axi_core_dBus_r_payload_data),
-    .dBus_rsp_payload_error(_zz_90_),
+    .dBus_rsp_payload_error(_zz_88_),
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset),
     .resetCtrl_systemReset(resetCtrl_systemReset) 
   );
   StreamFork_3_ streamFork_4_ ( 
-    .io_input_valid(_zz_91_),
+    .io_input_valid(_zz_89_),
     .io_input_ready(streamFork_4__io_input_ready),
     .io_input_payload_wr(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr),
     .io_input_payload_address(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address),
@@ -15163,7 +15163,7 @@ module Briey (
     .io_input_payload_length(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length),
     .io_input_payload_last(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last),
     .io_outputs_0_valid(streamFork_4__io_outputs_0_valid),
-    .io_outputs_0_ready(_zz_92_),
+    .io_outputs_0_ready(_zz_90_),
     .io_outputs_0_payload_wr(streamFork_4__io_outputs_0_payload_wr),
     .io_outputs_0_payload_address(streamFork_4__io_outputs_0_payload_address),
     .io_outputs_0_payload_data(streamFork_4__io_outputs_0_payload_data),
@@ -15171,7 +15171,7 @@ module Briey (
     .io_outputs_0_payload_length(streamFork_4__io_outputs_0_payload_length),
     .io_outputs_0_payload_last(streamFork_4__io_outputs_0_payload_last),
     .io_outputs_1_valid(streamFork_4__io_outputs_1_valid),
-    .io_outputs_1_ready(_zz_93_),
+    .io_outputs_1_ready(_zz_91_),
     .io_outputs_1_payload_wr(streamFork_4__io_outputs_1_payload_wr),
     .io_outputs_1_payload_address(streamFork_4__io_outputs_1_payload_address),
     .io_outputs_1_payload_data(streamFork_4__io_outputs_1_payload_data),
@@ -15218,7 +15218,7 @@ module Briey (
     .io_mem_cmd_payload_data(systemDebugger_1__io_mem_cmd_payload_data),
     .io_mem_cmd_payload_wr(systemDebugger_1__io_mem_cmd_payload_wr),
     .io_mem_cmd_payload_size(systemDebugger_1__io_mem_cmd_payload_size),
-    .io_mem_rsp_valid(_zz_36_),
+    .io_mem_rsp_valid(_zz_34_),
     .io_mem_rsp_payload(axi_core_cpu_debug_bus_rsp_data),
     .io_axiClk(io_axiClk),
     .resetCtrl_systemReset(resetCtrl_systemReset) 
@@ -15237,7 +15237,7 @@ module Briey (
     .io_input_r_payload_resp(axi_core_iBus_decoder_io_input_r_payload_resp),
     .io_input_r_payload_last(axi_core_iBus_decoder_io_input_r_payload_last),
     .io_outputs_0_ar_valid(axi_core_iBus_decoder_io_outputs_0_ar_valid),
-    .io_outputs_0_ar_ready(_zz_94_),
+    .io_outputs_0_ar_ready(_zz_92_),
     .io_outputs_0_ar_payload_addr(axi_core_iBus_decoder_io_outputs_0_ar_payload_addr),
     .io_outputs_0_ar_payload_len(axi_core_iBus_decoder_io_outputs_0_ar_payload_len),
     .io_outputs_0_ar_payload_burst(axi_core_iBus_decoder_io_outputs_0_ar_payload_burst),
@@ -15249,7 +15249,7 @@ module Briey (
     .io_outputs_0_r_payload_resp(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_resp),
     .io_outputs_0_r_payload_last(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_last),
     .io_outputs_1_ar_valid(axi_core_iBus_decoder_io_outputs_1_ar_valid),
-    .io_outputs_1_ar_ready(_zz_95_),
+    .io_outputs_1_ar_ready(_zz_93_),
     .io_outputs_1_ar_payload_addr(axi_core_iBus_decoder_io_outputs_1_ar_payload_addr),
     .io_outputs_1_ar_payload_len(axi_core_iBus_decoder_io_outputs_1_ar_payload_len),
     .io_outputs_1_ar_payload_burst(axi_core_iBus_decoder_io_outputs_1_ar_payload_burst),
@@ -15281,12 +15281,12 @@ module Briey (
     .io_input_b_ready(axi_core_dBus_b_ready),
     .io_input_b_payload_resp(axi_core_dBus_decoder_io_input_b_payload_resp),
     .io_input_r_valid(axi_core_dBus_decoder_io_input_r_valid),
-    .io_input_r_ready(_zz_96_),
+    .io_input_r_ready(_zz_94_),
     .io_input_r_payload_data(axi_core_dBus_decoder_io_input_r_payload_data),
     .io_input_r_payload_resp(axi_core_dBus_decoder_io_input_r_payload_resp),
     .io_input_r_payload_last(axi_core_dBus_decoder_io_input_r_payload_last),
     .io_sharedOutputs_0_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_0_arw_valid),
-    .io_sharedOutputs_0_arw_ready(_zz_97_),
+    .io_sharedOutputs_0_arw_ready(_zz_95_),
     .io_sharedOutputs_0_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_addr),
     .io_sharedOutputs_0_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_len),
     .io_sharedOutputs_0_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_size),
@@ -15307,7 +15307,7 @@ module Briey (
     .io_sharedOutputs_0_r_payload_resp(axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_resp),
     .io_sharedOutputs_0_r_payload_last(axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_last),
     .io_sharedOutputs_1_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_1_arw_valid),
-    .io_sharedOutputs_1_arw_ready(_zz_98_),
+    .io_sharedOutputs_1_arw_ready(_zz_96_),
     .io_sharedOutputs_1_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr),
     .io_sharedOutputs_1_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_len),
     .io_sharedOutputs_1_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_size),
@@ -15328,7 +15328,7 @@ module Briey (
     .io_sharedOutputs_1_r_payload_resp(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_r_payload_resp),
     .io_sharedOutputs_1_r_payload_last(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_r_payload_last),
     .io_sharedOutputs_2_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_2_arw_valid),
-    .io_sharedOutputs_2_arw_ready(_zz_99_),
+    .io_sharedOutputs_2_arw_ready(_zz_97_),
     .io_sharedOutputs_2_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_addr),
     .io_sharedOutputs_2_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_len),
     .io_sharedOutputs_2_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_size),
@@ -15364,7 +15364,7 @@ module Briey (
     .io_input_r_payload_data(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_data),
     .io_input_r_payload_last(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_last),
     .io_outputs_0_ar_valid(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_valid),
-    .io_outputs_0_ar_ready(_zz_100_),
+    .io_outputs_0_ar_ready(_zz_98_),
     .io_outputs_0_ar_payload_addr(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_addr),
     .io_outputs_0_ar_payload_len(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_len),
     .io_outputs_0_ar_payload_size(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_size),
@@ -15378,12 +15378,12 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Axi4SharedArbiter axi_ram_io_axi_arbiter ( 
-    .io_readInputs_0_ar_valid(_zz_40_),
+    .io_readInputs_0_ar_valid(_zz_38_),
     .io_readInputs_0_ar_ready(axi_ram_io_axi_arbiter_io_readInputs_0_ar_ready),
-    .io_readInputs_0_ar_payload_addr(_zz_101_),
-    .io_readInputs_0_ar_payload_id(_zz_59_),
+    .io_readInputs_0_ar_payload_addr(_zz_99_),
+    .io_readInputs_0_ar_payload_id(_zz_57_),
     .io_readInputs_0_ar_payload_len(axi_core_iBus_decoder_io_outputs_1_ar_payload_len),
-    .io_readInputs_0_ar_payload_size(_zz_102_),
+    .io_readInputs_0_ar_payload_size(_zz_100_),
     .io_readInputs_0_ar_payload_burst(axi_core_iBus_decoder_io_outputs_1_ar_payload_burst),
     .io_readInputs_0_r_valid(axi_ram_io_axi_arbiter_io_readInputs_0_r_valid),
     .io_readInputs_0_r_ready(axi_core_iBus_decoder_io_outputs_1_r_ready),
@@ -15391,13 +15391,13 @@ module Briey (
     .io_readInputs_0_r_payload_id(axi_ram_io_axi_arbiter_io_readInputs_0_r_payload_id),
     .io_readInputs_0_r_payload_resp(axi_ram_io_axi_arbiter_io_readInputs_0_r_payload_resp),
     .io_readInputs_0_r_payload_last(axi_ram_io_axi_arbiter_io_readInputs_0_r_payload_last),
-    .io_sharedInputs_0_arw_valid(_zz_49_),
+    .io_sharedInputs_0_arw_valid(_zz_47_),
     .io_sharedInputs_0_arw_ready(axi_ram_io_axi_arbiter_io_sharedInputs_0_arw_ready),
-    .io_sharedInputs_0_arw_payload_addr(_zz_103_),
-    .io_sharedInputs_0_arw_payload_id(_zz_60_),
+    .io_sharedInputs_0_arw_payload_addr(_zz_101_),
+    .io_sharedInputs_0_arw_payload_id(_zz_58_),
     .io_sharedInputs_0_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_len),
     .io_sharedInputs_0_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_size),
-    .io_sharedInputs_0_arw_payload_burst(_zz_104_),
+    .io_sharedInputs_0_arw_payload_burst(_zz_102_),
     .io_sharedInputs_0_arw_payload_write(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_write),
     .io_sharedInputs_0_w_valid(axi_core_dBus_decoder_io_sharedOutputs_2_w_valid),
     .io_sharedInputs_0_w_ready(axi_ram_io_axi_arbiter_io_sharedInputs_0_w_ready),
@@ -15423,7 +15423,7 @@ module Briey (
     .io_output_arw_payload_burst(axi_ram_io_axi_arbiter_io_output_arw_payload_burst),
     .io_output_arw_payload_write(axi_ram_io_axi_arbiter_io_output_arw_payload_write),
     .io_output_w_valid(axi_ram_io_axi_arbiter_io_output_w_valid),
-    .io_output_w_ready(_zz_105_),
+    .io_output_w_ready(_zz_103_),
     .io_output_w_payload_data(axi_ram_io_axi_arbiter_io_output_w_payload_data),
     .io_output_w_payload_strb(axi_ram_io_axi_arbiter_io_output_w_payload_strb),
     .io_output_w_payload_last(axi_ram_io_axi_arbiter_io_output_w_payload_last),
@@ -15441,12 +15441,12 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Axi4SharedArbiter_1_ axi_sdramCtrl_io_axi_arbiter ( 
-    .io_readInputs_0_ar_valid(_zz_37_),
+    .io_readInputs_0_ar_valid(_zz_35_),
     .io_readInputs_0_ar_ready(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_ar_ready),
-    .io_readInputs_0_ar_payload_addr(_zz_106_),
-    .io_readInputs_0_ar_payload_id(_zz_69_),
+    .io_readInputs_0_ar_payload_addr(_zz_104_),
+    .io_readInputs_0_ar_payload_id(_zz_67_),
     .io_readInputs_0_ar_payload_len(axi_core_iBus_decoder_io_outputs_0_ar_payload_len),
-    .io_readInputs_0_ar_payload_size(_zz_107_),
+    .io_readInputs_0_ar_payload_size(_zz_105_),
     .io_readInputs_0_ar_payload_burst(axi_core_iBus_decoder_io_outputs_0_ar_payload_burst),
     .io_readInputs_0_r_valid(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_valid),
     .io_readInputs_0_r_ready(axi_core_iBus_decoder_io_outputs_0_r_ready),
@@ -15454,26 +15454,26 @@ module Briey (
     .io_readInputs_0_r_payload_id(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_id),
     .io_readInputs_0_r_payload_resp(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_resp),
     .io_readInputs_0_r_payload_last(axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_last),
-    .io_readInputs_1_ar_valid(_zz_56_),
+    .io_readInputs_1_ar_valid(_zz_54_),
     .io_readInputs_1_ar_ready(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_ar_ready),
-    .io_readInputs_1_ar_payload_addr(_zz_108_),
-    .io_readInputs_1_ar_payload_id(_zz_70_),
+    .io_readInputs_1_ar_payload_addr(_zz_106_),
+    .io_readInputs_1_ar_payload_id(_zz_68_),
     .io_readInputs_1_ar_payload_len(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_len),
     .io_readInputs_1_ar_payload_size(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_size),
-    .io_readInputs_1_ar_payload_burst(_zz_109_),
+    .io_readInputs_1_ar_payload_burst(_zz_107_),
     .io_readInputs_1_r_valid(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_valid),
     .io_readInputs_1_r_ready(axi_vgaCtrl_io_axi_decoder_io_outputs_0_r_ready),
     .io_readInputs_1_r_payload_data(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_data),
     .io_readInputs_1_r_payload_id(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_id),
     .io_readInputs_1_r_payload_resp(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_resp),
     .io_readInputs_1_r_payload_last(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_last),
-    .io_sharedInputs_0_arw_valid(_zz_43_),
+    .io_sharedInputs_0_arw_valid(_zz_41_),
     .io_sharedInputs_0_arw_ready(axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_arw_ready),
-    .io_sharedInputs_0_arw_payload_addr(_zz_110_),
-    .io_sharedInputs_0_arw_payload_id(_zz_71_),
+    .io_sharedInputs_0_arw_payload_addr(_zz_108_),
+    .io_sharedInputs_0_arw_payload_id(_zz_69_),
     .io_sharedInputs_0_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_len),
     .io_sharedInputs_0_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_size),
-    .io_sharedInputs_0_arw_payload_burst(_zz_111_),
+    .io_sharedInputs_0_arw_payload_burst(_zz_109_),
     .io_sharedInputs_0_arw_payload_write(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_write),
     .io_sharedInputs_0_w_valid(axi_core_dBus_decoder_io_sharedOutputs_0_w_valid),
     .io_sharedInputs_0_w_ready(axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_w_ready),
@@ -15499,7 +15499,7 @@ module Briey (
     .io_output_arw_payload_burst(axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_burst),
     .io_output_arw_payload_write(axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_write),
     .io_output_w_valid(axi_sdramCtrl_io_axi_arbiter_io_output_w_valid),
-    .io_output_w_ready(_zz_112_),
+    .io_output_w_ready(_zz_110_),
     .io_output_w_payload_data(axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data),
     .io_output_w_payload_strb(axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb),
     .io_output_w_payload_last(axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last),
@@ -15517,13 +15517,13 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Axi4SharedArbiter_2_ axi_apbBridge_io_axi_arbiter ( 
-    .io_sharedInputs_0_arw_valid(_zz_46_),
+    .io_sharedInputs_0_arw_valid(_zz_44_),
     .io_sharedInputs_0_arw_ready(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_arw_ready),
-    .io_sharedInputs_0_arw_payload_addr(_zz_113_),
-    .io_sharedInputs_0_arw_payload_id(_zz_80_),
+    .io_sharedInputs_0_arw_payload_addr(_zz_111_),
+    .io_sharedInputs_0_arw_payload_id(_zz_78_),
     .io_sharedInputs_0_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_len),
     .io_sharedInputs_0_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_size),
-    .io_sharedInputs_0_arw_payload_burst(_zz_114_),
+    .io_sharedInputs_0_arw_payload_burst(_zz_112_),
     .io_sharedInputs_0_arw_payload_write(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_write),
     .io_sharedInputs_0_w_valid(axi_core_dBus_decoder_io_sharedOutputs_1_w_valid),
     .io_sharedInputs_0_w_ready(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_w_ready),
@@ -15616,7 +15616,7 @@ module Briey (
     .io_outputs_2_PWRITE(apb3Router_1__io_outputs_2_PWRITE),
     .io_outputs_2_PWDATA(apb3Router_1__io_outputs_2_PWDATA),
     .io_outputs_2_PRDATA(axi_uartCtrl_io_apb_PRDATA),
-    .io_outputs_2_PSLVERROR(_zz_115_),
+    .io_outputs_2_PSLVERROR(_zz_113_),
     .io_outputs_3_PADDR(apb3Router_1__io_outputs_3_PADDR),
     .io_outputs_3_PSEL(apb3Router_1__io_outputs_3_PSEL),
     .io_outputs_3_PENABLE(apb3Router_1__io_outputs_3_PENABLE),
@@ -15632,13 +15632,13 @@ module Briey (
     .io_outputs_4_PWRITE(apb3Router_1__io_outputs_4_PWRITE),
     .io_outputs_4_PWDATA(apb3Router_1__io_outputs_4_PWDATA),
     .io_outputs_4_PRDATA(axi_vgaCtrl_io_apb_PRDATA),
-    .io_outputs_4_PSLVERROR(_zz_116_),
+    .io_outputs_4_PSLVERROR(_zz_114_),
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   always @ (*) begin
     resetCtrl_systemResetUnbuffered = 1'b0;
-    if(_zz_117_)begin
+    if(_zz_115_)begin
       resetCtrl_systemResetUnbuffered = 1'b1;
     end
   end
@@ -15651,147 +15651,145 @@ module Briey (
   assign axi_core_iBus_ar_payload_prot = (3'b110);
   assign axi_core_iBus_ar_payload_cache = (4'b1111);
   assign axi_core_iBus_ar_payload_burst = (2'b01);
-  assign _zz_88_ = (! (axi_core_iBus_r_payload_resp == (2'b00)));
+  assign _zz_86_ = (! (axi_core_iBus_r_payload_resp == (2'b00)));
   assign axi_core_iBus_r_ready = 1'b1;
+  assign _zz_87_ = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_ready);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_valid = _zz_4_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_wr = _zz_5_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_address = _zz_6_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_data = _zz_7_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_mask = _zz_8_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_length = _zz_9_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_last = _zz_10_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_ready = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid = _zz_11_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr = _zz_12_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address = _zz_13_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data = _zz_14_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask = _zz_15_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length = _zz_16_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last = _zz_17_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid || _zz_18_);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready = (! _zz_18_);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr = (_zz_18_ ? _zz_19_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address = (_zz_18_ ? _zz_20_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_data = (_zz_18_ ? _zz_21_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask = (_zz_18_ ? _zz_22_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length = (_zz_18_ ? _zz_23_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last = (_zz_18_ ? _zz_24_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last);
   always @ (*) begin
-    _zz_6_ = 1'b0;
-    if(((_zz_2_ && _zz_3_) && _zz_4_))begin
-      _zz_6_ = 1'b1;
+    _zz_25_ = 1'b0;
+    if(((axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready) && axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr))begin
+      _zz_25_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_7_ = 1'b0;
+    _zz_26_ = 1'b0;
     if((axi_core_dBus_b_valid && 1'b1))begin
-      _zz_7_ = 1'b1;
+      _zz_26_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    if((_zz_6_ && (! _zz_7_)))begin
-      _zz_9_ = (3'b001);
+    if((_zz_25_ && (! _zz_26_)))begin
+      _zz_28_ = (3'b001);
     end else begin
-      if(((! _zz_6_) && _zz_7_))begin
-        _zz_9_ = (3'b111);
+      if(((! _zz_25_) && _zz_26_))begin
+        _zz_28_ = (3'b111);
       end else begin
-        _zz_9_ = (3'b000);
+        _zz_28_ = (3'b000);
       end
     end
   end
 
-  assign _zz_10_ = (_zz_8_ + _zz_9_);
-  assign _zz_89_ = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_ready);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_valid = _zz_11_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_wr = _zz_12_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_address = _zz_13_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_data = _zz_14_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_mask = _zz_15_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_length = _zz_16_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_last = _zz_17_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_ready = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid = _zz_18_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr = _zz_19_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address = _zz_20_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data = _zz_21_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask = _zz_22_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length = _zz_23_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last = _zz_24_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid || _zz_25_);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready = (! _zz_25_);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr = (_zz_25_ ? _zz_26_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address = (_zz_25_ ? _zz_27_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_data = (_zz_25_ ? _zz_28_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask = (_zz_25_ ? _zz_29_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length = (_zz_25_ ? _zz_30_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last = (_zz_25_ ? _zz_31_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last);
-  assign _zz_32_ = (! (((_zz_8_ != (3'b000)) && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr)) || (_zz_8_ == (3'b111))));
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready = (streamFork_4__io_input_ready && _zz_32_);
-  assign _zz_91_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && _zz_32_);
+  assign _zz_29_ = (_zz_27_ + _zz_28_);
+  assign _zz_30_ = (! (((_zz_27_ != (3'b000)) && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr)) || (_zz_27_ == (3'b111))));
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready = (streamFork_4__io_input_ready && _zz_30_);
+  assign _zz_89_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && _zz_30_);
   always @ (*) begin
-    _zz_34_ = streamFork_4__io_outputs_0_valid;
-    if(_zz_33_)begin
-      _zz_34_ = 1'b0;
+    _zz_32_ = streamFork_4__io_outputs_0_valid;
+    if(_zz_31_)begin
+      _zz_32_ = 1'b0;
     end
   end
 
   always @ (*) begin
-    _zz_92_ = _zz_3_;
-    if(_zz_33_)begin
-      _zz_92_ = 1'b1;
+    _zz_90_ = _zz_2_;
+    if(_zz_31_)begin
+      _zz_90_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_35_ = streamFork_4__io_outputs_1_valid;
-    if(_zz_118_)begin
-      _zz_35_ = 1'b0;
+    _zz_33_ = streamFork_4__io_outputs_1_valid;
+    if(_zz_116_)begin
+      _zz_33_ = 1'b0;
     end
   end
 
   always @ (*) begin
-    _zz_93_ = _zz_5_;
-    if(_zz_118_)begin
-      _zz_93_ = 1'b1;
+    _zz_91_ = _zz_3_;
+    if(_zz_116_)begin
+      _zz_91_ = 1'b1;
     end
   end
 
-  assign _zz_2_ = _zz_34_;
-  assign _zz_4_ = streamFork_4__io_outputs_0_payload_wr;
-  assign _zz_90_ = (! (axi_core_dBus_r_payload_resp == (2'b00)));
-  assign axi_core_dBus_arw_valid = _zz_2_;
-  assign _zz_3_ = axi_core_dBus_arw_ready;
+  assign _zz_88_ = (! (axi_core_dBus_r_payload_resp == (2'b00)));
+  assign axi_core_dBus_arw_valid = _zz_32_;
+  assign _zz_2_ = axi_core_dBus_arw_ready;
   assign axi_core_dBus_arw_payload_addr = streamFork_4__io_outputs_0_payload_address;
   assign axi_core_dBus_arw_payload_len = {5'd0, streamFork_4__io_outputs_0_payload_length};
   assign axi_core_dBus_arw_payload_size = (3'b010);
   assign axi_core_dBus_arw_payload_cache = (4'b1111);
   assign axi_core_dBus_arw_payload_prot = (3'b010);
-  assign axi_core_dBus_arw_payload_write = _zz_4_;
-  assign axi_core_dBus_w_valid = _zz_35_;
-  assign _zz_5_ = axi_core_dBus_w_ready;
+  assign axi_core_dBus_arw_payload_write = streamFork_4__io_outputs_0_payload_wr;
+  assign axi_core_dBus_w_valid = _zz_33_;
+  assign _zz_3_ = axi_core_dBus_w_ready;
   assign axi_core_dBus_w_payload_data = streamFork_4__io_outputs_1_payload_data;
   assign axi_core_dBus_w_payload_strb = streamFork_4__io_outputs_1_payload_mask;
   assign axi_core_dBus_w_payload_last = streamFork_4__io_outputs_1_payload_last;
   assign axi_core_dBus_b_ready = 1'b1;
   assign axi_core_dBus_r_ready = 1'b1;
-  assign _zz_87_ = systemDebugger_1__io_mem_cmd_payload_address[7:0];
+  assign _zz_85_ = systemDebugger_1__io_mem_cmd_payload_address[7:0];
   assign io_jtag_tdo = jtagBridge_1__io_jtag_tdo;
-  assign _zz_37_ = _zz_39_;
-  assign _zz_94_ = (_zz_38_ && _zz_39_);
-  assign _zz_38_ = axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_ar_ready;
-  assign _zz_40_ = _zz_42_;
-  assign _zz_95_ = (_zz_41_ && _zz_42_);
-  assign _zz_41_ = axi_ram_io_axi_arbiter_io_readInputs_0_ar_ready;
+  assign _zz_35_ = _zz_37_;
+  assign _zz_92_ = (_zz_36_ && _zz_37_);
+  assign _zz_36_ = axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_ar_ready;
+  assign _zz_38_ = _zz_40_;
+  assign _zz_93_ = (_zz_39_ && _zz_40_);
+  assign _zz_39_ = axi_ram_io_axi_arbiter_io_readInputs_0_ar_ready;
   assign axi_core_iBus_ar_ready = axi_core_iBus_decoder_io_input_ar_ready;
   assign axi_core_iBus_r_valid = axi_core_iBus_decoder_io_input_r_valid;
   assign axi_core_iBus_r_payload_data = axi_core_iBus_decoder_io_input_r_payload_data;
   assign axi_core_iBus_r_payload_last = axi_core_iBus_decoder_io_input_r_payload_last;
   assign axi_core_iBus_r_payload_resp = axi_core_iBus_decoder_io_input_r_payload_resp;
-  assign _zz_43_ = _zz_45_;
-  assign _zz_97_ = (_zz_44_ && _zz_45_);
-  assign _zz_44_ = axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_arw_ready;
-  assign _zz_46_ = _zz_48_;
-  assign _zz_98_ = (_zz_47_ && _zz_48_);
-  assign _zz_47_ = axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_arw_ready;
-  assign _zz_49_ = _zz_51_;
-  assign _zz_99_ = (_zz_50_ && _zz_51_);
-  assign _zz_50_ = axi_ram_io_axi_arbiter_io_sharedInputs_0_arw_ready;
+  assign _zz_41_ = _zz_43_;
+  assign _zz_95_ = (_zz_42_ && _zz_43_);
+  assign _zz_42_ = axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_arw_ready;
+  assign _zz_44_ = _zz_46_;
+  assign _zz_96_ = (_zz_45_ && _zz_46_);
+  assign _zz_45_ = axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_arw_ready;
+  assign _zz_47_ = _zz_49_;
+  assign _zz_97_ = (_zz_48_ && _zz_49_);
+  assign _zz_48_ = axi_ram_io_axi_arbiter_io_sharedInputs_0_arw_ready;
   assign axi_core_dBus_arw_ready = axi_core_dBus_decoder_io_input_arw_ready;
   assign axi_core_dBus_w_ready = axi_core_dBus_decoder_io_input_w_ready;
   assign axi_core_dBus_b_valid = axi_core_dBus_decoder_io_input_b_valid;
   assign axi_core_dBus_b_payload_resp = axi_core_dBus_decoder_io_input_b_payload_resp;
-  assign _zz_96_ = ((1'b1 && (! axi_core_dBus_decoder_io_input_r_m2sPipe_valid)) || axi_core_dBus_decoder_io_input_r_m2sPipe_ready);
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_valid = _zz_52_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data = _zz_53_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp = _zz_54_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last = _zz_55_;
+  assign _zz_94_ = ((1'b1 && (! axi_core_dBus_decoder_io_input_r_m2sPipe_valid)) || axi_core_dBus_decoder_io_input_r_m2sPipe_ready);
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_valid = _zz_50_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data = _zz_51_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp = _zz_52_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last = _zz_53_;
   assign axi_core_dBus_r_valid = axi_core_dBus_decoder_io_input_r_m2sPipe_valid;
   assign axi_core_dBus_decoder_io_input_r_m2sPipe_ready = axi_core_dBus_r_ready;
   assign axi_core_dBus_r_payload_data = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data;
   assign axi_core_dBus_r_payload_resp = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp;
   assign axi_core_dBus_r_payload_last = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last;
-  assign _zz_56_ = _zz_58_;
-  assign _zz_100_ = (_zz_57_ && _zz_58_);
-  assign _zz_57_ = axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
+  assign _zz_54_ = _zz_56_;
+  assign _zz_98_ = (_zz_55_ && _zz_56_);
+  assign _zz_55_ = axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_valid = axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_addr = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_addr;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_len = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_len;
@@ -15799,12 +15797,12 @@ module Briey (
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_cache = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_cache;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_prot = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_prot;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_ready = axi_vgaCtrl_io_axi_decoder_io_input_ar_ready;
-  assign _zz_101_ = axi_core_iBus_decoder_io_outputs_1_ar_payload_addr[14:0];
-  assign _zz_59_[2 : 0] = (3'b000);
-  assign _zz_102_ = (3'b010);
-  assign _zz_103_ = axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_addr[14:0];
-  assign _zz_60_[2 : 0] = (3'b000);
-  assign _zz_104_ = (2'b01);
+  assign _zz_99_ = axi_core_iBus_decoder_io_outputs_1_ar_payload_addr[14:0];
+  assign _zz_57_[2 : 0] = (3'b000);
+  assign _zz_100_ = (3'b010);
+  assign _zz_101_ = axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_addr[14:0];
+  assign _zz_58_[2 : 0] = (3'b000);
+  assign _zz_102_ = (2'b01);
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_valid = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_addr = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_id = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
@@ -15813,26 +15811,26 @@ module Briey (
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_burst = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_write = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready = axi_ram_io_axi_arw_ready;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_ram_io_axi_arbiter_io_output_w_valid || _zz_61_);
-  assign _zz_105_ = (! _zz_61_);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_61_ ? _zz_62_ : axi_ram_io_axi_arbiter_io_output_w_payload_data);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_61_ ? _zz_63_ : axi_ram_io_axi_arbiter_io_output_w_payload_strb);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_61_ ? _zz_64_ : axi_ram_io_axi_arbiter_io_output_w_payload_last);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_ram_io_axi_arbiter_io_output_w_valid || _zz_59_);
+  assign _zz_103_ = (! _zz_59_);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_59_ ? _zz_60_ : axi_ram_io_axi_arbiter_io_output_w_payload_data);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_59_ ? _zz_61_ : axi_ram_io_axi_arbiter_io_output_w_payload_strb);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_59_ ? _zz_62_ : axi_ram_io_axi_arbiter_io_output_w_payload_last);
   assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready = ((1'b1 && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid)) || axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_65_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_66_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_67_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_68_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_63_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_64_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_65_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_66_;
   assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready = axi_ram_io_axi_w_ready;
-  assign _zz_106_ = axi_core_iBus_decoder_io_outputs_0_ar_payload_addr[26:0];
+  assign _zz_104_ = axi_core_iBus_decoder_io_outputs_0_ar_payload_addr[26:0];
+  assign _zz_67_[1 : 0] = (2'b00);
+  assign _zz_105_ = (3'b010);
+  assign _zz_106_ = axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_addr[26:0];
+  assign _zz_68_[1 : 0] = (2'b00);
+  assign _zz_107_ = (2'b01);
+  assign _zz_108_ = axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_addr[26:0];
   assign _zz_69_[1 : 0] = (2'b00);
-  assign _zz_107_ = (3'b010);
-  assign _zz_108_ = axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_addr[26:0];
-  assign _zz_70_[1 : 0] = (2'b00);
   assign _zz_109_ = (2'b01);
-  assign _zz_110_ = axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_addr[26:0];
-  assign _zz_71_[1 : 0] = (2'b00);
-  assign _zz_111_ = (2'b01);
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
@@ -15841,20 +15839,20 @@ module Briey (
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
   assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready = axi_sdramCtrl_io_axi_arw_ready;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_sdramCtrl_io_axi_arbiter_io_output_w_valid || _zz_72_);
-  assign _zz_112_ = (! _zz_72_);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_72_ ? _zz_73_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_72_ ? _zz_74_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_72_ ? _zz_75_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last);
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_sdramCtrl_io_axi_arbiter_io_output_w_valid || _zz_70_);
+  assign _zz_110_ = (! _zz_70_);
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_70_ ? _zz_71_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data);
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_70_ ? _zz_72_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb);
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_70_ ? _zz_73_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last);
   assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready = ((1'b1 && (! axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid)) || axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_76_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_77_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_78_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_79_;
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_74_;
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_75_;
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_76_;
+  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_77_;
   assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready = axi_sdramCtrl_io_axi_w_ready;
-  assign _zz_113_ = axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr[19:0];
-  assign _zz_80_[3 : 0] = (4'b0000);
-  assign _zz_114_ = (2'b01);
+  assign _zz_111_ = axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr[19:0];
+  assign _zz_78_[3 : 0] = (4'b0000);
+  assign _zz_112_ = (2'b01);
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_valid = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_addr = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_id = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
@@ -15868,13 +15866,13 @@ module Briey (
   assign axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_payload_strb = axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_strb;
   assign axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_payload_last = axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_last;
   assign axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_ready = axi_apbBridge_io_axi_w_ready;
-  assign _zz_81_ = apb3Router_1__io_outputs_0_PADDR[3:0];
-  assign _zz_82_ = apb3Router_1__io_outputs_1_PADDR[3:0];
-  assign _zz_84_ = apb3Router_1__io_outputs_2_PADDR[3:0];
-  assign _zz_115_ = 1'b0;
-  assign _zz_83_ = apb3Router_1__io_outputs_3_PADDR[7:0];
-  assign _zz_85_ = apb3Router_1__io_outputs_4_PADDR[7:0];
-  assign _zz_116_ = 1'b0;
+  assign _zz_79_ = apb3Router_1__io_outputs_0_PADDR[3:0];
+  assign _zz_80_ = apb3Router_1__io_outputs_1_PADDR[3:0];
+  assign _zz_82_ = apb3Router_1__io_outputs_2_PADDR[3:0];
+  assign _zz_113_ = 1'b0;
+  assign _zz_81_ = apb3Router_1__io_outputs_3_PADDR[7:0];
+  assign _zz_83_ = apb3Router_1__io_outputs_4_PADDR[7:0];
+  assign _zz_114_ = 1'b0;
   assign io_gpioA_write = axi_gpioACtrl_io_gpio_write;
   assign io_gpioA_writeEnable = axi_gpioACtrl_io_gpio_writeEnable;
   assign io_gpioB_write = axi_gpioBCtrl_io_gpio_write;
@@ -15896,9 +15894,9 @@ module Briey (
   assign io_vga_color_r = axi_vgaCtrl_io_vga_color_r;
   assign io_vga_color_g = axi_vgaCtrl_io_vga_color_g;
   assign io_vga_color_b = axi_vgaCtrl_io_vga_color_b;
-  assign _zz_86_ = 1'b0;
+  assign _zz_84_ = 1'b0;
   always @ (posedge io_axiClk) begin
-    if(_zz_117_)begin
+    if(_zz_115_)begin
       resetCtrl_systemResetCounter <= (resetCtrl_systemResetCounter + (6'b000001));
     end
     if(bufferCC_13__io_dataOut)begin
@@ -15916,96 +15914,96 @@ module Briey (
 
   always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
     if (resetCtrl_axiReset) begin
-      _zz_8_ <= (3'b000);
+      _zz_4_ <= 1'b0;
       _zz_11_ <= 1'b0;
       _zz_18_ <= 1'b0;
-      _zz_25_ <= 1'b0;
-      _zz_33_ <= 1'b0;
-      _zz_39_ <= 1'b0;
-      _zz_42_ <= 1'b0;
-      _zz_45_ <= 1'b0;
-      _zz_48_ <= 1'b0;
-      _zz_51_ <= 1'b0;
-      _zz_52_ <= 1'b0;
-      _zz_58_ <= 1'b0;
+      _zz_27_ <= (3'b000);
+      _zz_31_ <= 1'b0;
+      _zz_37_ <= 1'b0;
+      _zz_40_ <= 1'b0;
+      _zz_43_ <= 1'b0;
+      _zz_46_ <= 1'b0;
+      _zz_49_ <= 1'b0;
+      _zz_50_ <= 1'b0;
+      _zz_56_ <= 1'b0;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= 1'b0;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= 1'b1;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
-      _zz_61_ <= 1'b0;
-      _zz_65_ <= 1'b0;
+      _zz_59_ <= 1'b0;
+      _zz_63_ <= 1'b0;
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
-      _zz_72_ <= 1'b0;
-      _zz_76_ <= 1'b0;
+      _zz_70_ <= 1'b0;
+      _zz_74_ <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_ready <= 1'b1;
     end else begin
-      _zz_8_ <= _zz_10_;
-      if(_zz_89_)begin
-        _zz_11_ <= axi_core_cpu_dBus_cmd_valid;
+      if(_zz_87_)begin
+        _zz_4_ <= axi_core_cpu_dBus_cmd_valid;
       end
       if(axi_core_cpu_dBus_cmd_m2sPipe_ready)begin
-        _zz_18_ <= axi_core_cpu_dBus_cmd_m2sPipe_valid;
+        _zz_11_ <= axi_core_cpu_dBus_cmd_m2sPipe_valid;
       end
       if(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready)begin
-        _zz_25_ <= 1'b0;
+        _zz_18_ <= 1'b0;
       end
-      if(_zz_119_)begin
-        _zz_25_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
+      if(_zz_117_)begin
+        _zz_18_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
       end
-      if((streamFork_4__io_outputs_0_valid && _zz_92_))begin
-        _zz_33_ <= (! streamFork_4__io_outputs_0_payload_last);
+      _zz_27_ <= _zz_29_;
+      if((streamFork_4__io_outputs_0_valid && _zz_90_))begin
+        _zz_31_ <= (! streamFork_4__io_outputs_0_payload_last);
       end
       if(axi_core_iBus_decoder_io_outputs_0_ar_valid)begin
-        _zz_39_ <= 1'b1;
+        _zz_37_ <= 1'b1;
       end
-      if((_zz_37_ && _zz_38_))begin
-        _zz_39_ <= 1'b0;
+      if((_zz_35_ && _zz_36_))begin
+        _zz_37_ <= 1'b0;
       end
       if(axi_core_iBus_decoder_io_outputs_1_ar_valid)begin
-        _zz_42_ <= 1'b1;
+        _zz_40_ <= 1'b1;
       end
-      if((_zz_40_ && _zz_41_))begin
-        _zz_42_ <= 1'b0;
+      if((_zz_38_ && _zz_39_))begin
+        _zz_40_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_0_arw_valid)begin
-        _zz_45_ <= 1'b1;
+        _zz_43_ <= 1'b1;
       end
-      if((_zz_43_ && _zz_44_))begin
-        _zz_45_ <= 1'b0;
+      if((_zz_41_ && _zz_42_))begin
+        _zz_43_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_1_arw_valid)begin
-        _zz_48_ <= 1'b1;
+        _zz_46_ <= 1'b1;
       end
-      if((_zz_46_ && _zz_47_))begin
-        _zz_48_ <= 1'b0;
+      if((_zz_44_ && _zz_45_))begin
+        _zz_46_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_2_arw_valid)begin
-        _zz_51_ <= 1'b1;
+        _zz_49_ <= 1'b1;
       end
-      if((_zz_49_ && _zz_50_))begin
-        _zz_51_ <= 1'b0;
+      if((_zz_47_ && _zz_48_))begin
+        _zz_49_ <= 1'b0;
       end
-      if(_zz_96_)begin
-        _zz_52_ <= axi_core_dBus_decoder_io_input_r_valid;
+      if(_zz_94_)begin
+        _zz_50_ <= axi_core_dBus_decoder_io_input_r_valid;
       end
       if(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_valid)begin
-        _zz_58_ <= 1'b1;
+        _zz_56_ <= 1'b1;
       end
-      if((_zz_56_ && _zz_57_))begin
-        _zz_58_ <= 1'b0;
+      if((_zz_54_ && _zz_55_))begin
+        _zz_56_ <= 1'b0;
       end
-      if(_zz_120_)begin
+      if(_zz_118_)begin
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= axi_vgaCtrl_io_axi_ar_valid;
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= (! axi_vgaCtrl_io_axi_ar_valid);
       end else begin
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= (! axi_vgaCtrl_io_axi_ar_halfPipe_ready);
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= axi_vgaCtrl_io_axi_ar_halfPipe_ready;
       end
-      if(_zz_121_)begin
+      if(_zz_119_)begin
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_ram_io_axi_arbiter_io_output_arw_valid;
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_ram_io_axi_arbiter_io_output_arw_valid);
       end else begin
@@ -16013,15 +16011,15 @@ module Briey (
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready;
       end
       if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_61_ <= 1'b0;
+        _zz_59_ <= 1'b0;
       end
-      if(_zz_122_)begin
-        _zz_61_ <= axi_ram_io_axi_arbiter_io_output_w_valid;
+      if(_zz_120_)begin
+        _zz_59_ <= axi_ram_io_axi_arbiter_io_output_w_valid;
       end
       if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_65_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid;
+        _zz_63_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid;
       end
-      if(_zz_123_)begin
+      if(_zz_121_)begin
         axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_valid;
         axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_valid);
       end else begin
@@ -16029,22 +16027,22 @@ module Briey (
         axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
       end
       if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_72_ <= 1'b0;
+        _zz_70_ <= 1'b0;
       end
-      if(_zz_124_)begin
-        _zz_72_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_valid;
+      if(_zz_122_)begin
+        _zz_70_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_valid;
       end
       if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_76_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
+        _zz_74_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
       end
-      if(_zz_125_)begin
+      if(_zz_123_)begin
         axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_apbBridge_io_axi_arbiter_io_output_arw_valid;
         axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_apbBridge_io_axi_arbiter_io_output_arw_valid);
       end else begin
         axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= (! axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_ready);
         axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_ready;
       end
-      if(_zz_126_)begin
+      if(_zz_124_)begin
         axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid <= axi_apbBridge_io_axi_arbiter_io_output_w_valid;
         axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_ready <= (! axi_apbBridge_io_axi_arbiter_io_output_w_valid);
       end else begin
@@ -16055,43 +16053,43 @@ module Briey (
   end
 
   always @ (posedge io_axiClk) begin
-    if(_zz_89_)begin
-      _zz_12_ <= axi_core_cpu_dBus_cmd_payload_wr;
-      _zz_13_ <= axi_core_cpu_dBus_cmd_payload_address;
-      _zz_14_ <= axi_core_cpu_dBus_cmd_payload_data;
-      _zz_15_ <= axi_core_cpu_dBus_cmd_payload_mask;
-      _zz_16_ <= axi_core_cpu_dBus_cmd_payload_length;
-      _zz_17_ <= axi_core_cpu_dBus_cmd_payload_last;
+    if(_zz_87_)begin
+      _zz_5_ <= axi_core_cpu_dBus_cmd_payload_wr;
+      _zz_6_ <= axi_core_cpu_dBus_cmd_payload_address;
+      _zz_7_ <= axi_core_cpu_dBus_cmd_payload_data;
+      _zz_8_ <= axi_core_cpu_dBus_cmd_payload_mask;
+      _zz_9_ <= axi_core_cpu_dBus_cmd_payload_length;
+      _zz_10_ <= axi_core_cpu_dBus_cmd_payload_last;
     end
     if(axi_core_cpu_dBus_cmd_m2sPipe_ready)begin
-      _zz_19_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
-      _zz_20_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_address;
-      _zz_21_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_data;
-      _zz_22_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
-      _zz_23_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
-      _zz_24_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
+      _zz_12_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
+      _zz_13_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_address;
+      _zz_14_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_data;
+      _zz_15_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
+      _zz_16_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
+      _zz_17_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
     end
-    if(_zz_119_)begin
-      _zz_26_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
-      _zz_27_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address;
-      _zz_28_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data;
-      _zz_29_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
-      _zz_30_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
-      _zz_31_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
+    if(_zz_117_)begin
+      _zz_19_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
+      _zz_20_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address;
+      _zz_21_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data;
+      _zz_22_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
+      _zz_23_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
+      _zz_24_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
     end
-    if(_zz_96_)begin
-      _zz_53_ <= axi_core_dBus_decoder_io_input_r_payload_data;
-      _zz_54_ <= axi_core_dBus_decoder_io_input_r_payload_resp;
-      _zz_55_ <= axi_core_dBus_decoder_io_input_r_payload_last;
+    if(_zz_94_)begin
+      _zz_51_ <= axi_core_dBus_decoder_io_input_r_payload_data;
+      _zz_52_ <= axi_core_dBus_decoder_io_input_r_payload_resp;
+      _zz_53_ <= axi_core_dBus_decoder_io_input_r_payload_last;
     end
-    if(_zz_120_)begin
+    if(_zz_118_)begin
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_addr <= axi_vgaCtrl_io_axi_ar_payload_addr;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_len <= axi_vgaCtrl_io_axi_ar_payload_len;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_size <= axi_vgaCtrl_io_axi_ar_payload_size;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_cache <= axi_vgaCtrl_io_axi_ar_payload_cache;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_prot <= axi_vgaCtrl_io_axi_ar_payload_prot;
     end
-    if(_zz_121_)begin
+    if(_zz_119_)begin
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_ram_io_axi_arbiter_io_output_arw_payload_addr;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_ram_io_axi_arbiter_io_output_arw_payload_id;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_ram_io_axi_arbiter_io_output_arw_payload_len;
@@ -16099,17 +16097,17 @@ module Briey (
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_ram_io_axi_arbiter_io_output_arw_payload_burst;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_ram_io_axi_arbiter_io_output_arw_payload_write;
     end
-    if(_zz_122_)begin
-      _zz_62_ <= axi_ram_io_axi_arbiter_io_output_w_payload_data;
-      _zz_63_ <= axi_ram_io_axi_arbiter_io_output_w_payload_strb;
-      _zz_64_ <= axi_ram_io_axi_arbiter_io_output_w_payload_last;
+    if(_zz_120_)begin
+      _zz_60_ <= axi_ram_io_axi_arbiter_io_output_w_payload_data;
+      _zz_61_ <= axi_ram_io_axi_arbiter_io_output_w_payload_strb;
+      _zz_62_ <= axi_ram_io_axi_arbiter_io_output_w_payload_last;
     end
     if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-      _zz_66_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
-      _zz_67_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
-      _zz_68_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
+      _zz_64_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
+      _zz_65_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
+      _zz_66_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
     end
-    if(_zz_123_)begin
+    if(_zz_121_)begin
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_addr;
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_id;
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_len;
@@ -16117,17 +16115,17 @@ module Briey (
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_burst;
       axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_write;
     end
-    if(_zz_124_)begin
-      _zz_73_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data;
-      _zz_74_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb;
-      _zz_75_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last;
+    if(_zz_122_)begin
+      _zz_71_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data;
+      _zz_72_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb;
+      _zz_73_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last;
     end
     if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-      _zz_77_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
-      _zz_78_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
-      _zz_79_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
+      _zz_75_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
+      _zz_76_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
+      _zz_77_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
     end
-    if(_zz_125_)begin
+    if(_zz_123_)begin
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_addr;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_id;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_len;
@@ -16135,7 +16133,7 @@ module Briey (
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_burst;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_write;
     end
-    if(_zz_126_)begin
+    if(_zz_124_)begin
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_data <= axi_apbBridge_io_axi_arbiter_io_output_w_payload_data;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_strb <= axi_apbBridge_io_axi_arbiter_io_output_w_payload_strb;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_last <= axi_apbBridge_io_axi_arbiter_io_output_w_payload_last;
@@ -16148,9 +16146,9 @@ module Briey (
 
   always @ (posedge io_axiClk or posedge resetCtrl_systemReset) begin
     if (resetCtrl_systemReset) begin
-      _zz_36_ <= 1'b0;
+      _zz_34_ <= 1'b0;
     end else begin
-      _zz_36_ <= (systemDebugger_1__io_mem_cmd_valid && axi_core_cpu_debug_bus_cmd_ready);
+      _zz_34_ <= (systemDebugger_1__io_mem_cmd_valid && axi_core_cpu_debug_bus_cmd_ready);
     end
   end
 
