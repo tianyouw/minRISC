@@ -449,6 +449,12 @@ wire [31:0] io_sdram_DQ_write;
 wire io_sdram_DQ_writeEnable;
 wire [4:0] io_gpioA_write_unused;
 
+wire vga_clock;
+wire vga_color_en_tmp;
+wire [4:0] io_vga_r; 
+wire [5:0] io_vga_g; 
+wire [4:0] io_vga_b; 
+
 assign DRAM_DQ[31:0] = io_sdram_DQ_writeEnable == 1'b1 ? io_sdram_DQ_write[31:0] : 32'bz;
 
 assign HEX0[6:0] = {7{1'd1}};
@@ -468,10 +474,50 @@ sys_pll pll (
     .reset_source_reset ()          // reset_source.reset
 );
 
+
+
+// VGA 
+vga25_pll vga_pll (
+	.areset(~KEY[0]),
+	.inclk0(CLOCK2_50),
+	.c0(vga_clock),
+	.locked()
+);
+assign VGA_CLK = vga_clock;
+
+
+// To check vga clock frequency, take out later
+reg [32:0] counter;
+reg debug_led_on;
+assign LEDG[0] = debug_led_on;
+
+always @(posedge vga_clock) begin
+	if (~KEY[0]) begin
+		counter <= 0;
+	end else begin
+		counter <= counter + 1;
+		debug_led_on <= counter[24];	// should flash approx. every 1s
+	end
+end
+
+assign LEDG[1] = VGA_VS;
+assign LEDG[2] = VGA_HS;
+assign LEDG[3] = VGA_R[0];
+assign LEDG[4] = VGA_G[0];
+assign LEDG[5] = VGA_B[0];
+assign LEDG[6] = vga_color_en_tmp;
+
+// resize the RGB signals
+assign VGA_R = {3'b000, io_vga_r};
+assign VGA_G = {2'b00, io_vga_g};
+assign VGA_B = {3'b000, io_vga_b};
+assign VGA_BLANK_N = vga_color_en_tmp;
+
+
 Briey soc (
       .io_asyncReset(~KEY[0]),
       .io_axiClk(sysClock),
-      .io_vgaClk(1'b0),                                  // VGA disabled
+      .io_vgaClk(VGA_CLK),                               // VGA disabled
       .io_jtag_tms(),                                    // JTAG disabled
       .io_jtag_tdi(),
       .io_jtag_tdo(),
@@ -490,20 +536,20 @@ Briey soc (
       .io_gpioA_read({14'd0, SW[17:0]}),
       .io_gpioA_write({io_gpioA_write_unused[4:0],
                        LEDG[8],
-                       LEDR[17:0],
-                       LEDG[7:0]}),                      // 5 bits unconnected
+                       LEDR[17:0]}),
+                       //LEDG[7:0]}),                 // 5 bits unconnected
       .io_gpioA_writeEnable(),                           // Unused
       .io_gpioB_read(32'd0),                             // GPIO B unused
       .io_gpioB_write(),
       .io_gpioB_writeEnable(),
       .io_uart_txd(UART_TXD),
       .io_uart_rxd(UART_RXD),
-      .io_vga_vSync(),                                   // VGA disabled
-      .io_vga_hSync(),
-      .io_vga_colorEn(),
-      .io_vga_color_r(),
-      .io_vga_color_g(),
-      .io_vga_color_b(),
+		.io_vga_vSync(VGA_VS),                                   // VGA disabled
+      .io_vga_hSync(VGA_HS),
+      .io_vga_colorEn(vga_color_en_tmp),
+      .io_vga_color_r(io_vga_r),
+      .io_vga_color_g(io_vga_g),
+      .io_vga_color_b(io_vga_b),
       .io_timerExternal_clear(1'b0),
       .io_timerExternal_tick(1'b0),
       .io_coreInterrupt(~KEY[1])
