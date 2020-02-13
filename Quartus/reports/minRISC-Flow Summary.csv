@@ -1,0 +1,32 @@
+Copyright (C) 2018  Intel Corporation. All rights reserved.
+Your use of Intel Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Intel Program License 
+Subscription Agreement, the Intel Quartus Prime License Agreement,
+the Intel FPGA IP License Agreement, or other applicable license
+agreement, including, without limitation, that your use is for
+the sole purpose of programming logic devices manufactured by
+Intel and sold by Intel or its authorized distributors.  Please
+refer to the applicable agreement for further details.
+
+Flow Summary
+
+Flow Status,Successful - Thu Feb 13 18:20:56 2020
+Quartus Prime Version,18.1.0 Build 625 09/12/2018 SJ Standard Edition
+Revision Name,minRISC
+Top-level Entity Name,DE2_115_GOLDEN_TOP
+Family,Cyclone IV E
+Device,EP4CE115F29C7
+Timing Models,Final
+Total logic elements,"13,169 / 114,480 ( 12 % )"
+    Total combinational functions,"11,660 / 114,480 ( 10 % )"
+    Dedicated logic registers,"5,466 / 114,480 ( 5 % )"
+Total registers,5466
+Total pins,525 / 529 ( 99 % )
+Total virtual pins,0
+Total memory bits,"367,260 / 3,981,312 ( 9 % )"
+Embedded Multiplier 9-bit elements,8 / 532 ( 2 % )
+Total PLLs,2 / 4 ( 50 % )

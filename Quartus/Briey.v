@@ -1,5 +1,5 @@
 // Generator : SpinalHDL v1.3.6    git head : 9bf01e7f360e003fac1dd5ca8b8f4bffec0e52b8
-// Date      : 13/02/2020, 15:52:26
+// Date      : 13/02/2020, 16:15:00
 // Component : Briey
 
 
@@ -75,11 +75,11 @@
 `define AluCtrlEnum_defaultEncoding_SLT_SLTU 2'b01
 `define AluCtrlEnum_defaultEncoding_BITWISE 2'b10
 
-`define Src2CtrlEnum_defaultEncoding_type [1:0]
-`define Src2CtrlEnum_defaultEncoding_RS 2'b00
-`define Src2CtrlEnum_defaultEncoding_IMI 2'b01
-`define Src2CtrlEnum_defaultEncoding_IMS 2'b10
-`define Src2CtrlEnum_defaultEncoding_PC 2'b11
+`define ShiftCtrlEnum_defaultEncoding_type [1:0]
+`define ShiftCtrlEnum_defaultEncoding_DISABLE_1 2'b00
+`define ShiftCtrlEnum_defaultEncoding_SLL_1 2'b01
+`define ShiftCtrlEnum_defaultEncoding_SRL_1 2'b10
+`define ShiftCtrlEnum_defaultEncoding_SRA_1 2'b11
 
 `define BranchCtrlEnum_defaultEncoding_type [1:0]
 `define BranchCtrlEnum_defaultEncoding_INC 2'b00
@@ -3605,7 +3605,15 @@ module PulseCCByToggle (
 
 endmodule
 
-module InstructionCache (
+module StreamFifo_2_ (
+      input   io_push_valid,
+      output  io_push_ready,
+      input   io_push_payload_data_last,
+      input  [31:0] io_push_payload_data_fragment,
+      output  io_pop_valid,
+      input   io_pop_ready,
+      output  io_pop_payload_data_last,
+      output [31:0] io_pop_payload_data_fragment,
       input   io_flush,
       output reg [3:0] io_occupancy,
       output reg [3:0] io_availability,
@@ -3624,6 +3632,24 @@ module InstructionCache (
   wire  _zz_14_;
   wire [32:0] _zz_15_;
   reg  _zz_1_;
+  reg  logic_pushPtr_willIncrement;
+  reg  logic_pushPtr_willClear;
+  reg [3:0] logic_pushPtr_valueNext;
+  reg [3:0] logic_pushPtr_value;
+  wire  logic_pushPtr_willOverflowIfInc;
+  wire  logic_pushPtr_willOverflow;
+  reg  logic_popPtr_willIncrement;
+  reg  logic_popPtr_willClear;
+  reg [3:0] logic_popPtr_valueNext;
+  reg [3:0] logic_popPtr_value;
+  wire  logic_popPtr_willOverflowIfInc;
+  wire  logic_popPtr_willOverflow;
+  wire  logic_ptrMatch;
+  reg  logic_risingOccupancy;
+  wire  logic_pushing;
+  wire  logic_popping;
+  wire  logic_empty;
+  wire  logic_full;
   reg  _zz_2_;
   wire [32:0] _zz_3_;
   wire [3:0] logic_ptrDif;
@@ -3651,22 +3677,24 @@ module InstructionCache (
     end
   end
 
-  always @ (posedge io_axiClk) begin
-    if(_zz_1_) begin
-      ways_0_datas[lineLoader_write_data_0_payload_address] <= lineLoader_write_data_0_payload_data;
-    end
-  end
-
-  always @ (posedge io_axiClk) begin
-    if(_zz_9_) begin
-      _zz_11_ <= ways_0_datas[_zz_8_];
+  always @ (*) begin
+    _zz_1_ = 1'b0;
+    if(logic_pushing)begin
+      _zz_1_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_1_ = 1'b0;
-    if(lineLoader_write_data_0_valid)begin
-      _zz_1_ = 1'b1;
+    logic_pushPtr_willIncrement = 1'b0;
+    if(logic_pushing)begin
+      logic_pushPtr_willIncrement = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    logic_pushPtr_willClear = 1'b0;
+    if(io_flush)begin
+      logic_pushPtr_willClear = 1'b1;
     end
   end
 
@@ -3683,26 +3711,17 @@ module InstructionCache (
     end
   end
 
-  assign io_cpu_fetch_haltIt = io_cpu_fetch_mmuBus_busy;
   always @ (*) begin
-    lineLoader_fire = 1'b0;
-    if(io_mem_rsp_valid)begin
-      if((lineLoader_wordIndex == (3'b111)))begin
-        lineLoader_fire = 1'b1;
-      end
+    logic_popPtr_willIncrement = 1'b0;
+    if(logic_popping)begin
+      logic_popPtr_willIncrement = 1'b1;
     end
   end
 
   always @ (*) begin
-    io_cpu_prefetch_haltIt = (lineLoader_valid || lineLoader_flushPending);
-    if(_zz_12_)begin
-      io_cpu_prefetch_haltIt = 1'b1;
-    end
-    if((! _zz_3_))begin
-      io_cpu_prefetch_haltIt = 1'b1;
-    end
+    logic_popPtr_willClear = 1'b0;
     if(io_flush)begin
-      io_cpu_prefetch_haltIt = 1'b1;
+      logic_popPtr_willClear = 1'b1;
     end
   end
 
@@ -3901,271 +3920,178 @@ module StreamFifo_3_ (
   assign io_availability = {((! logic_risingOccupancy) && logic_ptrMatch),_zz_10_};
   always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
     if (resetCtrl_axiReset) begin
-      lineLoader_valid <= 1'b0;
-      lineLoader_hadError <= 1'b0;
-      lineLoader_flushPending <= 1'b1;
-      lineLoader_cmdSent <= 1'b0;
-      lineLoader_wordIndex <= (3'b000);
+      logic_pushPtr_value <= (4'b0000);
+      logic_popPtr_value <= (4'b0000);
+      logic_risingOccupancy <= 1'b0;
+      _zz_2_ <= 1'b0;
     end else begin
-      if(lineLoader_fire)begin
-        lineLoader_valid <= 1'b0;
-      end
-      if(lineLoader_fire)begin
-        lineLoader_hadError <= 1'b0;
-      end
-      if(io_cpu_fill_valid)begin
-        lineLoader_valid <= 1'b1;
+      logic_pushPtr_value <= logic_pushPtr_valueNext;
+      logic_popPtr_value <= logic_popPtr_valueNext;
+      _zz_2_ <= (logic_popPtr_valueNext == logic_pushPtr_value);
+      if((logic_pushing != logic_popping))begin
+        logic_risingOccupancy <= logic_pushing;
       end
       if(io_flush)begin
-        lineLoader_flushPending <= 1'b1;
+        logic_risingOccupancy <= 1'b0;
       end
-      if(_zz_13_)begin
-        lineLoader_flushPending <= 1'b0;
-      end
-      if((io_mem_cmd_valid && io_mem_cmd_ready))begin
-        lineLoader_cmdSent <= 1'b1;
-      end
-      if(lineLoader_fire)begin
-        lineLoader_cmdSent <= 1'b0;
-      end
-      if(io_mem_rsp_valid)begin
-        lineLoader_wordIndex <= (lineLoader_wordIndex + (3'b001));
-        if(io_mem_rsp_payload_error)begin
-          lineLoader_hadError <= 1'b1;
-        end
-      end
-    end
-  end
-
-  always @ (posedge io_axiClk) begin
-    if(io_cpu_fill_valid)begin
-      lineLoader_address <= io_cpu_fill_payload;
-    end
-    if(_zz_12_)begin
-      lineLoader_flushCounter <= (lineLoader_flushCounter + (8'b00000001));
-    end
-    _zz_3_ <= lineLoader_flushCounter[7];
-    if(_zz_13_)begin
-      lineLoader_flushCounter <= (8'b00000000);
     end
   end
 
 endmodule
 
-module DataCache (
-      input   io_cpu_execute_isValid,
-      input  [31:0] io_cpu_execute_address,
-      input   io_cpu_execute_args_wr,
-      input  [31:0] io_cpu_execute_args_data,
-      input  [1:0] io_cpu_execute_args_size,
-      input   io_cpu_memory_isValid,
-      input   io_cpu_memory_isStuck,
-      input   io_cpu_memory_isRemoved,
-      output  io_cpu_memory_isWrite,
-      input  [31:0] io_cpu_memory_address,
-      output  io_cpu_memory_mmuBus_cmd_isValid,
-      output [31:0] io_cpu_memory_mmuBus_cmd_virtualAddress,
-      output  io_cpu_memory_mmuBus_cmd_bypassTranslation,
-      input  [31:0] io_cpu_memory_mmuBus_rsp_physicalAddress,
-      input   io_cpu_memory_mmuBus_rsp_isIoAccess,
-      input   io_cpu_memory_mmuBus_rsp_allowRead,
-      input   io_cpu_memory_mmuBus_rsp_allowWrite,
-      input   io_cpu_memory_mmuBus_rsp_allowExecute,
-      input   io_cpu_memory_mmuBus_rsp_exception,
-      input   io_cpu_memory_mmuBus_rsp_refilling,
-      output  io_cpu_memory_mmuBus_end,
-      input   io_cpu_memory_mmuBus_busy,
-      input   io_cpu_writeBack_isValid,
-      input   io_cpu_writeBack_isStuck,
-      input   io_cpu_writeBack_isUser,
-      output reg  io_cpu_writeBack_haltIt,
-      output  io_cpu_writeBack_isWrite,
-      output reg [31:0] io_cpu_writeBack_data,
-      input  [31:0] io_cpu_writeBack_address,
-      output  io_cpu_writeBack_mmuException,
-      output  io_cpu_writeBack_unalignedAccess,
-      output reg  io_cpu_writeBack_accessError,
-      output reg  io_cpu_redo,
-      input   io_cpu_flush_valid,
-      output reg  io_cpu_flush_ready,
-      output reg  io_mem_cmd_valid,
-      input   io_mem_cmd_ready,
-      output reg  io_mem_cmd_payload_wr,
-      output reg [31:0] io_mem_cmd_payload_address,
-      output [31:0] io_mem_cmd_payload_data,
-      output [3:0] io_mem_cmd_payload_mask,
-      output reg [2:0] io_mem_cmd_payload_length,
-      output reg  io_mem_cmd_payload_last,
-      input   io_mem_rsp_valid,
-      input  [31:0] io_mem_rsp_payload_data,
-      input   io_mem_rsp_payload_error,
+module StreamFifo_4_ (
+      input   io_push_valid,
+      output  io_push_ready,
+      input   io_push_payload_last,
+      input  [31:0] io_push_payload_fragment,
+      output  io_pop_valid,
+      input   io_pop_ready,
+      output  io_pop_payload_last,
+      output [31:0] io_pop_payload_fragment,
+      input   io_flush,
+      output [3:0] io_occupancy,
+      output [3:0] io_availability,
       input   io_axiClk,
       input   resetCtrl_axiReset);
-  reg [21:0] _zz_10_;
-  reg [31:0] _zz_11_;
-  wire  _zz_12_;
-  wire  _zz_13_;
-  wire  _zz_14_;
-  wire  _zz_15_;
-  wire  _zz_16_;
-  wire  _zz_17_;
-  wire [0:0] _zz_18_;
-  wire [0:0] _zz_19_;
-  wire [0:0] _zz_20_;
-  wire [2:0] _zz_21_;
-  wire [1:0] _zz_22_;
-  wire [21:0] _zz_23_;
-  reg  _zz_1_;
-  reg  _zz_2_;
-  wire  haltCpu;
-  reg  tagsReadCmd_valid;
-  reg [6:0] tagsReadCmd_payload;
-  reg  tagsWriteCmd_valid;
-  reg [0:0] tagsWriteCmd_payload_way;
-  reg [6:0] tagsWriteCmd_payload_address;
-  reg  tagsWriteCmd_payload_data_valid;
-  reg  tagsWriteCmd_payload_data_error;
-  reg [19:0] tagsWriteCmd_payload_data_address;
-  reg  tagsWriteLastCmd_valid;
-  reg [0:0] tagsWriteLastCmd_payload_way;
-  reg [6:0] tagsWriteLastCmd_payload_address;
-  reg  tagsWriteLastCmd_payload_data_valid;
-  reg  tagsWriteLastCmd_payload_data_error;
-  reg [19:0] tagsWriteLastCmd_payload_data_address;
-  reg  dataReadCmd_valid;
-  reg [9:0] dataReadCmd_payload;
-  reg  dataWriteCmd_valid;
-  reg [0:0] dataWriteCmd_payload_way;
-  reg [9:0] dataWriteCmd_payload_address;
-  reg [31:0] dataWriteCmd_payload_data;
-  reg [3:0] dataWriteCmd_payload_mask;
-  wire  _zz_3_;
-  wire  ways_0_tagsReadRsp_valid;
-  wire  ways_0_tagsReadRsp_error;
-  wire [19:0] ways_0_tagsReadRsp_address;
-  wire [21:0] _zz_4_;
-  wire  _zz_5_;
-  wire [31:0] ways_0_dataReadRsp;
-  reg [3:0] _zz_6_;
-  wire [3:0] stage0_mask;
-  wire [0:0] stage0_colisions;
-  reg  stageA_request_wr;
-  reg [31:0] stageA_request_data;
-  reg [1:0] stageA_request_size;
-  reg [3:0] stageA_mask;
-  wire  stageA_wayHits_0;
-  reg [0:0] stage0_colisions_regNextWhen;
+  reg [32:0] _zz_4_;
+  wire [0:0] _zz_5_;
+  wire [2:0] _zz_6_;
   wire [0:0] _zz_7_;
-  wire [0:0] stageA_colisions;
-  reg  stageB_request_wr;
-  reg [31:0] stageB_request_data;
-  reg [1:0] stageB_request_size;
-  reg  stageB_mmuRspFreeze;
-  reg [31:0] stageB_mmuRsp_physicalAddress;
-  reg  stageB_mmuRsp_isIoAccess;
-  reg  stageB_mmuRsp_allowRead;
-  reg  stageB_mmuRsp_allowWrite;
-  reg  stageB_mmuRsp_allowExecute;
-  reg  stageB_mmuRsp_exception;
-  reg  stageB_mmuRsp_refilling;
-  reg  stageB_tagsReadRsp_0_valid;
-  reg  stageB_tagsReadRsp_0_error;
-  reg [19:0] stageB_tagsReadRsp_0_address;
-  reg [31:0] stageB_dataReadRsp_0;
-  wire [0:0] _zz_8_;
-  reg [0:0] stageB_waysHits;
-  wire  stageB_waysHit;
-  wire [31:0] stageB_dataMux;
-  reg [3:0] stageB_mask;
-  reg [0:0] stageB_colisions;
-  reg  stageB_loaderValid;
-  reg  stageB_flusher_valid;
-  wire [31:0] stageB_requestDataBypass;
-  wire  stageB_isAmo;
-  reg  stageB_memCmdSent;
+  wire [2:0] _zz_8_;
   wire [0:0] _zz_9_;
-  reg  loader_valid;
-  reg  loader_counter_willIncrement;
-  wire  loader_counter_willClear;
-  reg [2:0] loader_counter_valueNext;
-  reg [2:0] loader_counter_value;
-  wire  loader_counter_willOverflowIfInc;
-  wire  loader_counter_willOverflow;
-  reg [0:0] loader_waysAllocator;
-  reg  loader_error;
-  reg [21:0] ways_0_tags [0:127];
-  reg [7:0] ways_0_data_symbol0 [0:1023];
-  reg [7:0] ways_0_data_symbol1 [0:1023];
-  reg [7:0] ways_0_data_symbol2 [0:1023];
-  reg [7:0] ways_0_data_symbol3 [0:1023];
-  reg [7:0] _zz_24_;
-  reg [7:0] _zz_25_;
-  reg [7:0] _zz_26_;
-  reg [7:0] _zz_27_;
-  assign _zz_12_ = (io_cpu_execute_isValid && (! io_cpu_memory_isStuck));
-  assign _zz_13_ = (((stageB_mmuRsp_refilling || io_cpu_writeBack_accessError) || io_cpu_writeBack_mmuException) || io_cpu_writeBack_unalignedAccess);
-  assign _zz_14_ = (stageB_waysHit || (stageB_request_wr && (! stageB_isAmo)));
-  assign _zz_15_ = (loader_valid && io_mem_rsp_valid);
-  assign _zz_16_ = ((((io_cpu_flush_valid && (! io_cpu_execute_isValid)) && (! io_cpu_memory_isValid)) && (! io_cpu_writeBack_isValid)) && (! io_cpu_redo));
-  assign _zz_17_ = ((! io_cpu_writeBack_isStuck) && (! stageB_mmuRspFreeze));
-  assign _zz_18_ = _zz_4_[0 : 0];
-  assign _zz_19_ = _zz_4_[1 : 1];
-  assign _zz_20_ = loader_counter_willIncrement;
-  assign _zz_21_ = {2'd0, _zz_20_};
-  assign _zz_22_ = {loader_waysAllocator,loader_waysAllocator[0]};
-  assign _zz_23_ = {tagsWriteCmd_payload_data_address,{tagsWriteCmd_payload_data_error,tagsWriteCmd_payload_data_valid}};
+  wire [2:0] _zz_10_;
+  wire  _zz_11_;
+  wire [32:0] _zz_12_;
+  reg  _zz_1_;
+  reg  logic_pushPtr_willIncrement;
+  reg  logic_pushPtr_willClear;
+  reg [2:0] logic_pushPtr_valueNext;
+  reg [2:0] logic_pushPtr_value;
+  wire  logic_pushPtr_willOverflowIfInc;
+  wire  logic_pushPtr_willOverflow;
+  reg  logic_popPtr_willIncrement;
+  reg  logic_popPtr_willClear;
+  reg [2:0] logic_popPtr_valueNext;
+  reg [2:0] logic_popPtr_value;
+  wire  logic_popPtr_willOverflowIfInc;
+  wire  logic_popPtr_willOverflow;
+  wire  logic_ptrMatch;
+  reg  logic_risingOccupancy;
+  wire  logic_pushing;
+  wire  logic_popping;
+  wire  logic_empty;
+  wire  logic_full;
+  reg  _zz_2_;
+  wire [32:0] _zz_3_;
+  wire [2:0] logic_ptrDif;
+  reg [32:0] logic_ram [0:7];
+  assign _zz_5_ = logic_pushPtr_willIncrement;
+  assign _zz_6_ = {2'd0, _zz_5_};
+  assign _zz_7_ = logic_popPtr_willIncrement;
+  assign _zz_8_ = {2'd0, _zz_7_};
+  assign _zz_9_ = _zz_3_[0 : 0];
+  assign _zz_10_ = (logic_popPtr_value - logic_pushPtr_value);
+  assign _zz_11_ = 1'b1;
+  assign _zz_12_ = {io_push_payload_fragment,io_push_payload_last};
   always @ (posedge io_axiClk) begin
-    if(_zz_2_) begin
-      ways_0_tags[tagsWriteCmd_payload_address] <= _zz_23_;
+    if(_zz_1_) begin
+      logic_ram[logic_pushPtr_value] <= _zz_12_;
     end
   end
 
   always @ (posedge io_axiClk) begin
-    if(_zz_3_) begin
-      _zz_10_ <= ways_0_tags[tagsReadCmd_payload];
-    end
-  end
-
-  always @ (*) begin
-    _zz_11_ = {_zz_27_, _zz_26_, _zz_25_, _zz_24_};
-  end
-  always @ (posedge io_axiClk) begin
-    if(dataWriteCmd_payload_mask[0] && _zz_1_) begin
-      ways_0_data_symbol0[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[7 : 0];
-    end
-    if(dataWriteCmd_payload_mask[1] && _zz_1_) begin
-      ways_0_data_symbol1[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[15 : 8];
-    end
-    if(dataWriteCmd_payload_mask[2] && _zz_1_) begin
-      ways_0_data_symbol2[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[23 : 16];
-    end
-    if(dataWriteCmd_payload_mask[3] && _zz_1_) begin
-      ways_0_data_symbol3[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[31 : 24];
-    end
-  end
-
-  always @ (posedge io_axiClk) begin
-    if(_zz_5_) begin
-      _zz_24_ <= ways_0_data_symbol0[dataReadCmd_payload];
-      _zz_25_ <= ways_0_data_symbol1[dataReadCmd_payload];
-      _zz_26_ <= ways_0_data_symbol2[dataReadCmd_payload];
-      _zz_27_ <= ways_0_data_symbol3[dataReadCmd_payload];
+    if(_zz_11_) begin
+      _zz_4_ <= logic_ram[logic_popPtr_valueNext];
     end
   end
 
   always @ (*) begin
     _zz_1_ = 1'b0;
-    if((dataWriteCmd_valid && dataWriteCmd_payload_way[0]))begin
+    if(logic_pushing)begin
       _zz_1_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_2_ = 1'b0;
-    if((tagsWriteCmd_valid && tagsWriteCmd_payload_way[0]))begin
-      _zz_2_ = 1'b1;
+    logic_pushPtr_willIncrement = 1'b0;
+    if(logic_pushing)begin
+      logic_pushPtr_willIncrement = 1'b1;
     end
   end
+
+  always @ (*) begin
+    logic_pushPtr_willClear = 1'b0;
+    if(io_flush)begin
+      logic_pushPtr_willClear = 1'b1;
+    end
+  end
+
+  assign logic_pushPtr_willOverflowIfInc = (logic_pushPtr_value == (3'b111));
+  assign logic_pushPtr_willOverflow = (logic_pushPtr_willOverflowIfInc && logic_pushPtr_willIncrement);
+  always @ (*) begin
+    logic_pushPtr_valueNext = (logic_pushPtr_value + _zz_6_);
+    if(logic_pushPtr_willClear)begin
+      logic_pushPtr_valueNext = (3'b000);
+    end
+  end
+
+  always @ (*) begin
+    logic_popPtr_willIncrement = 1'b0;
+    if(logic_popping)begin
+      logic_popPtr_willIncrement = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    logic_popPtr_willClear = 1'b0;
+    if(io_flush)begin
+      logic_popPtr_willClear = 1'b1;
+    end
+  end
+
+  assign logic_popPtr_willOverflowIfInc = (logic_popPtr_value == (3'b111));
+  assign logic_popPtr_willOverflow = (logic_popPtr_willOverflowIfInc && logic_popPtr_willIncrement);
+  always @ (*) begin
+    logic_popPtr_valueNext = (logic_popPtr_value + _zz_8_);
+    if(logic_popPtr_willClear)begin
+      logic_popPtr_valueNext = (3'b000);
+    end
+  end
+
+  assign logic_ptrMatch = (logic_pushPtr_value == logic_popPtr_value);
+  assign logic_pushing = (io_push_valid && io_push_ready);
+  assign logic_popping = (io_pop_valid && io_pop_ready);
+  assign logic_empty = (logic_ptrMatch && (! logic_risingOccupancy));
+  assign logic_full = (logic_ptrMatch && logic_risingOccupancy);
+  assign io_push_ready = (! logic_full);
+  assign io_pop_valid = ((! logic_empty) && (! (_zz_2_ && (! logic_full))));
+  assign _zz_3_ = _zz_4_;
+  assign io_pop_payload_last = _zz_9_[0];
+  assign io_pop_payload_fragment = _zz_3_[32 : 1];
+  assign logic_ptrDif = (logic_pushPtr_value - logic_popPtr_value);
+  assign io_occupancy = {(logic_risingOccupancy && logic_ptrMatch),logic_ptrDif};
+  assign io_availability = {((! logic_risingOccupancy) && logic_ptrMatch),_zz_10_};
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      logic_pushPtr_value <= (3'b000);
+      logic_popPtr_value <= (3'b000);
+      logic_risingOccupancy <= 1'b0;
+      _zz_2_ <= 1'b0;
+    end else begin
+      logic_pushPtr_value <= logic_pushPtr_valueNext;
+      logic_popPtr_value <= logic_popPtr_valueNext;
+      _zz_2_ <= (logic_popPtr_valueNext == logic_pushPtr_value);
+      if((logic_pushing != logic_popping))begin
+        logic_risingOccupancy <= logic_pushing;
+      end
+      if(io_flush)begin
+        logic_risingOccupancy <= 1'b0;
+      end
+    end
+  end
+
+endmodule
+
 
 //StreamFifo_5_ remplaced by StreamFifo_4_
 
@@ -4610,10 +4536,9 @@ module AsconFastCtrl (
           io_out_datastream_payload_data_fragment = tagOut[_zz_25_ +: 32];
         end
       end
-    end
-    if(_zz_15_)begin
-      dataWriteCmd_payload_address = {stageB_mmuRsp_physicalAddress[11 : 5],loader_counter_value};
-    end
+      default : begin
+      end
+    endcase
   end
 
   always @ (*) begin
@@ -4639,7 +4564,6 @@ module AsconFastCtrl (
         end
       end
       default : begin
-        _zz_6_ = (4'b1111);
       end
     endcase
   end
@@ -4819,12 +4743,6 @@ module AsconFastCtrl (
         readyForCmdIn <= 1'b1;
       end
     end
-    if((io_cpu_writeBack_isValid && stageB_mmuRsp_refilling))begin
-      io_cpu_redo = 1'b1;
-    end
-    if(loader_valid)begin
-      io_cpu_redo = 1'b1;
-    end
   end
 
   always @ (posedge io_axiClk) begin
@@ -4851,6 +4769,832 @@ module AsconFastCtrl (
       `fsm_enumDefinition_1_defaultEncoding_fsm_queueData : begin
       end
       `fsm_enumDefinition_1_defaultEncoding_fsm_queueTag : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+endmodule
+
+module InstructionCache (
+      input   io_flush,
+      input   io_cpu_prefetch_isValid,
+      output reg  io_cpu_prefetch_haltIt,
+      input  [31:0] io_cpu_prefetch_pc,
+      input   io_cpu_fetch_isValid,
+      input   io_cpu_fetch_isStuck,
+      input   io_cpu_fetch_isRemoved,
+      input  [31:0] io_cpu_fetch_pc,
+      output [31:0] io_cpu_fetch_data,
+      input   io_cpu_fetch_dataBypassValid,
+      input  [31:0] io_cpu_fetch_dataBypass,
+      output  io_cpu_fetch_mmuBus_cmd_isValid,
+      output [31:0] io_cpu_fetch_mmuBus_cmd_virtualAddress,
+      output  io_cpu_fetch_mmuBus_cmd_bypassTranslation,
+      input  [31:0] io_cpu_fetch_mmuBus_rsp_physicalAddress,
+      input   io_cpu_fetch_mmuBus_rsp_isIoAccess,
+      input   io_cpu_fetch_mmuBus_rsp_allowRead,
+      input   io_cpu_fetch_mmuBus_rsp_allowWrite,
+      input   io_cpu_fetch_mmuBus_rsp_allowExecute,
+      input   io_cpu_fetch_mmuBus_rsp_exception,
+      input   io_cpu_fetch_mmuBus_rsp_refilling,
+      output  io_cpu_fetch_mmuBus_end,
+      input   io_cpu_fetch_mmuBus_busy,
+      output [31:0] io_cpu_fetch_physicalAddress,
+      output  io_cpu_fetch_cacheMiss,
+      output  io_cpu_fetch_error,
+      output  io_cpu_fetch_mmuRefilling,
+      output  io_cpu_fetch_mmuException,
+      input   io_cpu_fetch_isUser,
+      output  io_cpu_fetch_haltIt,
+      input   io_cpu_decode_isValid,
+      input   io_cpu_decode_isStuck,
+      input  [31:0] io_cpu_decode_pc,
+      output [31:0] io_cpu_decode_physicalAddress,
+      output [31:0] io_cpu_decode_data,
+      input   io_cpu_fill_valid,
+      input  [31:0] io_cpu_fill_payload,
+      output  io_mem_cmd_valid,
+      input   io_mem_cmd_ready,
+      output [31:0] io_mem_cmd_payload_address,
+      output [2:0] io_mem_cmd_payload_size,
+      input   io_mem_rsp_valid,
+      input  [31:0] io_mem_rsp_payload_data,
+      input   io_mem_rsp_payload_error,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  reg [21:0] _zz_10_;
+  reg [31:0] _zz_11_;
+  wire  _zz_12_;
+  wire  _zz_13_;
+  wire [0:0] _zz_14_;
+  wire [0:0] _zz_15_;
+  wire [21:0] _zz_16_;
+  reg  _zz_1_;
+  reg  _zz_2_;
+  reg  lineLoader_fire;
+  reg  lineLoader_valid;
+  reg [31:0] lineLoader_address;
+  reg  lineLoader_hadError;
+  reg  lineLoader_flushPending;
+  reg [7:0] lineLoader_flushCounter;
+  reg  _zz_3_;
+  reg  lineLoader_cmdSent;
+  reg  lineLoader_wayToAllocate_willIncrement;
+  wire  lineLoader_wayToAllocate_willClear;
+  wire  lineLoader_wayToAllocate_willOverflowIfInc;
+  wire  lineLoader_wayToAllocate_willOverflow;
+  reg [2:0] lineLoader_wordIndex;
+  wire  lineLoader_write_tag_0_valid;
+  wire [6:0] lineLoader_write_tag_0_payload_address;
+  wire  lineLoader_write_tag_0_payload_data_valid;
+  wire  lineLoader_write_tag_0_payload_data_error;
+  wire [19:0] lineLoader_write_tag_0_payload_data_address;
+  wire  lineLoader_write_data_0_valid;
+  wire [9:0] lineLoader_write_data_0_payload_address;
+  wire [31:0] lineLoader_write_data_0_payload_data;
+  wire  _zz_4_;
+  wire [6:0] _zz_5_;
+  wire  _zz_6_;
+  wire  fetchStage_read_waysValues_0_tag_valid;
+  wire  fetchStage_read_waysValues_0_tag_error;
+  wire [19:0] fetchStage_read_waysValues_0_tag_address;
+  wire [21:0] _zz_7_;
+  wire [9:0] _zz_8_;
+  wire  _zz_9_;
+  wire [31:0] fetchStage_read_waysValues_0_data;
+  wire  fetchStage_hit_hits_0;
+  wire  fetchStage_hit_valid;
+  wire  fetchStage_hit_error;
+  wire [31:0] fetchStage_hit_data;
+  wire [31:0] fetchStage_hit_word;
+  reg [21:0] ways_0_tags [0:127];
+  reg [31:0] ways_0_datas [0:1023];
+  assign _zz_12_ = (! lineLoader_flushCounter[7]);
+  assign _zz_13_ = (lineLoader_flushPending && (! (lineLoader_valid || io_cpu_fetch_isValid)));
+  assign _zz_14_ = _zz_7_[0 : 0];
+  assign _zz_15_ = _zz_7_[1 : 1];
+  assign _zz_16_ = {lineLoader_write_tag_0_payload_data_address,{lineLoader_write_tag_0_payload_data_error,lineLoader_write_tag_0_payload_data_valid}};
+  always @ (posedge io_axiClk) begin
+    if(_zz_2_) begin
+      ways_0_tags[lineLoader_write_tag_0_payload_address] <= _zz_16_;
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(_zz_6_) begin
+      _zz_10_ <= ways_0_tags[_zz_5_];
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(_zz_1_) begin
+      ways_0_datas[lineLoader_write_data_0_payload_address] <= lineLoader_write_data_0_payload_data;
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(_zz_9_) begin
+      _zz_11_ <= ways_0_datas[_zz_8_];
+    end
+  end
+
+  always @ (*) begin
+    _zz_1_ = 1'b0;
+    if(lineLoader_write_data_0_valid)begin
+      _zz_1_ = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_2_ = 1'b0;
+    if(lineLoader_write_tag_0_valid)begin
+      _zz_2_ = 1'b1;
+    end
+  end
+
+  assign io_cpu_fetch_haltIt = io_cpu_fetch_mmuBus_busy;
+  always @ (*) begin
+    lineLoader_fire = 1'b0;
+    if(io_mem_rsp_valid)begin
+      if((lineLoader_wordIndex == (3'b111)))begin
+        lineLoader_fire = 1'b1;
+      end
+    end
+  end
+
+  always @ (*) begin
+    io_cpu_prefetch_haltIt = (lineLoader_valid || lineLoader_flushPending);
+    if(_zz_12_)begin
+      io_cpu_prefetch_haltIt = 1'b1;
+    end
+    if((! _zz_3_))begin
+      io_cpu_prefetch_haltIt = 1'b1;
+    end
+    if(io_flush)begin
+      io_cpu_prefetch_haltIt = 1'b1;
+    end
+  end
+
+  assign io_mem_cmd_valid = (lineLoader_valid && (! lineLoader_cmdSent));
+  assign io_mem_cmd_payload_address = {lineLoader_address[31 : 5],(5'b00000)};
+  assign io_mem_cmd_payload_size = (3'b101);
+  always @ (*) begin
+    lineLoader_wayToAllocate_willIncrement = 1'b0;
+    if((! lineLoader_valid))begin
+      lineLoader_wayToAllocate_willIncrement = 1'b1;
+    end
+  end
+
+  assign lineLoader_wayToAllocate_willClear = 1'b0;
+  assign lineLoader_wayToAllocate_willOverflowIfInc = 1'b1;
+  assign lineLoader_wayToAllocate_willOverflow = (lineLoader_wayToAllocate_willOverflowIfInc && lineLoader_wayToAllocate_willIncrement);
+  assign _zz_4_ = 1'b1;
+  assign lineLoader_write_tag_0_valid = ((_zz_4_ && lineLoader_fire) || (! lineLoader_flushCounter[7]));
+  assign lineLoader_write_tag_0_payload_address = (lineLoader_flushCounter[7] ? lineLoader_address[11 : 5] : lineLoader_flushCounter[6 : 0]);
+  assign lineLoader_write_tag_0_payload_data_valid = lineLoader_flushCounter[7];
+  assign lineLoader_write_tag_0_payload_data_error = (lineLoader_hadError || io_mem_rsp_payload_error);
+  assign lineLoader_write_tag_0_payload_data_address = lineLoader_address[31 : 12];
+  assign lineLoader_write_data_0_valid = (io_mem_rsp_valid && _zz_4_);
+  assign lineLoader_write_data_0_payload_address = {lineLoader_address[11 : 5],lineLoader_wordIndex};
+  assign lineLoader_write_data_0_payload_data = io_mem_rsp_payload_data;
+  assign _zz_5_ = io_cpu_prefetch_pc[11 : 5];
+  assign _zz_6_ = (! io_cpu_fetch_isStuck);
+  assign _zz_7_ = _zz_10_;
+  assign fetchStage_read_waysValues_0_tag_valid = _zz_14_[0];
+  assign fetchStage_read_waysValues_0_tag_error = _zz_15_[0];
+  assign fetchStage_read_waysValues_0_tag_address = _zz_7_[21 : 2];
+  assign _zz_8_ = io_cpu_prefetch_pc[11 : 2];
+  assign _zz_9_ = (! io_cpu_fetch_isStuck);
+  assign fetchStage_read_waysValues_0_data = _zz_11_;
+  assign fetchStage_hit_hits_0 = (fetchStage_read_waysValues_0_tag_valid && (fetchStage_read_waysValues_0_tag_address == io_cpu_fetch_mmuBus_rsp_physicalAddress[31 : 12]));
+  assign fetchStage_hit_valid = (fetchStage_hit_hits_0 != (1'b0));
+  assign fetchStage_hit_error = fetchStage_read_waysValues_0_tag_error;
+  assign fetchStage_hit_data = fetchStage_read_waysValues_0_data;
+  assign fetchStage_hit_word = fetchStage_hit_data[31 : 0];
+  assign io_cpu_fetch_data = (io_cpu_fetch_dataBypassValid ? io_cpu_fetch_dataBypass : fetchStage_hit_word);
+  assign io_cpu_fetch_mmuBus_cmd_isValid = io_cpu_fetch_isValid;
+  assign io_cpu_fetch_mmuBus_cmd_virtualAddress = io_cpu_fetch_pc;
+  assign io_cpu_fetch_mmuBus_cmd_bypassTranslation = 1'b0;
+  assign io_cpu_fetch_mmuBus_end = ((! io_cpu_fetch_isStuck) || io_cpu_fetch_isRemoved);
+  assign io_cpu_fetch_physicalAddress = io_cpu_fetch_mmuBus_rsp_physicalAddress;
+  assign io_cpu_fetch_cacheMiss = (! fetchStage_hit_valid);
+  assign io_cpu_fetch_error = fetchStage_hit_error;
+  assign io_cpu_fetch_mmuRefilling = io_cpu_fetch_mmuBus_rsp_refilling;
+  assign io_cpu_fetch_mmuException = ((! io_cpu_fetch_mmuBus_rsp_refilling) && (io_cpu_fetch_mmuBus_rsp_exception || (! io_cpu_fetch_mmuBus_rsp_allowExecute)));
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      lineLoader_valid <= 1'b0;
+      lineLoader_hadError <= 1'b0;
+      lineLoader_flushPending <= 1'b1;
+      lineLoader_cmdSent <= 1'b0;
+      lineLoader_wordIndex <= (3'b000);
+    end else begin
+      if(lineLoader_fire)begin
+        lineLoader_valid <= 1'b0;
+      end
+      if(lineLoader_fire)begin
+        lineLoader_hadError <= 1'b0;
+      end
+      if(io_cpu_fill_valid)begin
+        lineLoader_valid <= 1'b1;
+      end
+      if(io_flush)begin
+        lineLoader_flushPending <= 1'b1;
+      end
+      if(_zz_13_)begin
+        lineLoader_flushPending <= 1'b0;
+      end
+      if((io_mem_cmd_valid && io_mem_cmd_ready))begin
+        lineLoader_cmdSent <= 1'b1;
+      end
+      if(lineLoader_fire)begin
+        lineLoader_cmdSent <= 1'b0;
+      end
+      if(io_mem_rsp_valid)begin
+        lineLoader_wordIndex <= (lineLoader_wordIndex + (3'b001));
+        if(io_mem_rsp_payload_error)begin
+          lineLoader_hadError <= 1'b1;
+        end
+      end
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(io_cpu_fill_valid)begin
+      lineLoader_address <= io_cpu_fill_payload;
+    end
+    if(_zz_12_)begin
+      lineLoader_flushCounter <= (lineLoader_flushCounter + (8'b00000001));
+    end
+    _zz_3_ <= lineLoader_flushCounter[7];
+    if(_zz_13_)begin
+      lineLoader_flushCounter <= (8'b00000000);
+    end
+  end
+
+endmodule
+
+module DataCache (
+      input   io_cpu_execute_isValid,
+      input  [31:0] io_cpu_execute_address,
+      input   io_cpu_execute_args_wr,
+      input  [31:0] io_cpu_execute_args_data,
+      input  [1:0] io_cpu_execute_args_size,
+      input   io_cpu_memory_isValid,
+      input   io_cpu_memory_isStuck,
+      input   io_cpu_memory_isRemoved,
+      output  io_cpu_memory_isWrite,
+      input  [31:0] io_cpu_memory_address,
+      output  io_cpu_memory_mmuBus_cmd_isValid,
+      output [31:0] io_cpu_memory_mmuBus_cmd_virtualAddress,
+      output  io_cpu_memory_mmuBus_cmd_bypassTranslation,
+      input  [31:0] io_cpu_memory_mmuBus_rsp_physicalAddress,
+      input   io_cpu_memory_mmuBus_rsp_isIoAccess,
+      input   io_cpu_memory_mmuBus_rsp_allowRead,
+      input   io_cpu_memory_mmuBus_rsp_allowWrite,
+      input   io_cpu_memory_mmuBus_rsp_allowExecute,
+      input   io_cpu_memory_mmuBus_rsp_exception,
+      input   io_cpu_memory_mmuBus_rsp_refilling,
+      output  io_cpu_memory_mmuBus_end,
+      input   io_cpu_memory_mmuBus_busy,
+      input   io_cpu_writeBack_isValid,
+      input   io_cpu_writeBack_isStuck,
+      input   io_cpu_writeBack_isUser,
+      output reg  io_cpu_writeBack_haltIt,
+      output  io_cpu_writeBack_isWrite,
+      output reg [31:0] io_cpu_writeBack_data,
+      input  [31:0] io_cpu_writeBack_address,
+      output  io_cpu_writeBack_mmuException,
+      output  io_cpu_writeBack_unalignedAccess,
+      output reg  io_cpu_writeBack_accessError,
+      output reg  io_cpu_redo,
+      input   io_cpu_flush_valid,
+      output reg  io_cpu_flush_ready,
+      output reg  io_mem_cmd_valid,
+      input   io_mem_cmd_ready,
+      output reg  io_mem_cmd_payload_wr,
+      output reg [31:0] io_mem_cmd_payload_address,
+      output [31:0] io_mem_cmd_payload_data,
+      output [3:0] io_mem_cmd_payload_mask,
+      output reg [2:0] io_mem_cmd_payload_length,
+      output reg  io_mem_cmd_payload_last,
+      input   io_mem_rsp_valid,
+      input  [31:0] io_mem_rsp_payload_data,
+      input   io_mem_rsp_payload_error,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  reg [21:0] _zz_10_;
+  reg [31:0] _zz_11_;
+  wire  _zz_12_;
+  wire  _zz_13_;
+  wire  _zz_14_;
+  wire  _zz_15_;
+  wire  _zz_16_;
+  wire  _zz_17_;
+  wire [0:0] _zz_18_;
+  wire [0:0] _zz_19_;
+  wire [0:0] _zz_20_;
+  wire [2:0] _zz_21_;
+  wire [1:0] _zz_22_;
+  wire [21:0] _zz_23_;
+  reg  _zz_1_;
+  reg  _zz_2_;
+  wire  haltCpu;
+  reg  tagsReadCmd_valid;
+  reg [6:0] tagsReadCmd_payload;
+  reg  tagsWriteCmd_valid;
+  reg [0:0] tagsWriteCmd_payload_way;
+  reg [6:0] tagsWriteCmd_payload_address;
+  reg  tagsWriteCmd_payload_data_valid;
+  reg  tagsWriteCmd_payload_data_error;
+  reg [19:0] tagsWriteCmd_payload_data_address;
+  reg  tagsWriteLastCmd_valid;
+  reg [0:0] tagsWriteLastCmd_payload_way;
+  reg [6:0] tagsWriteLastCmd_payload_address;
+  reg  tagsWriteLastCmd_payload_data_valid;
+  reg  tagsWriteLastCmd_payload_data_error;
+  reg [19:0] tagsWriteLastCmd_payload_data_address;
+  reg  dataReadCmd_valid;
+  reg [9:0] dataReadCmd_payload;
+  reg  dataWriteCmd_valid;
+  reg [0:0] dataWriteCmd_payload_way;
+  reg [9:0] dataWriteCmd_payload_address;
+  reg [31:0] dataWriteCmd_payload_data;
+  reg [3:0] dataWriteCmd_payload_mask;
+  wire  _zz_3_;
+  wire  ways_0_tagsReadRsp_valid;
+  wire  ways_0_tagsReadRsp_error;
+  wire [19:0] ways_0_tagsReadRsp_address;
+  wire [21:0] _zz_4_;
+  wire  _zz_5_;
+  wire [31:0] ways_0_dataReadRsp;
+  reg [3:0] _zz_6_;
+  wire [3:0] stage0_mask;
+  wire [0:0] stage0_colisions;
+  reg  stageA_request_wr;
+  reg [31:0] stageA_request_data;
+  reg [1:0] stageA_request_size;
+  reg [3:0] stageA_mask;
+  wire  stageA_wayHits_0;
+  reg [0:0] stage0_colisions_regNextWhen;
+  wire [0:0] _zz_7_;
+  wire [0:0] stageA_colisions;
+  reg  stageB_request_wr;
+  reg [31:0] stageB_request_data;
+  reg [1:0] stageB_request_size;
+  reg  stageB_mmuRspFreeze;
+  reg [31:0] stageB_mmuRsp_physicalAddress;
+  reg  stageB_mmuRsp_isIoAccess;
+  reg  stageB_mmuRsp_allowRead;
+  reg  stageB_mmuRsp_allowWrite;
+  reg  stageB_mmuRsp_allowExecute;
+  reg  stageB_mmuRsp_exception;
+  reg  stageB_mmuRsp_refilling;
+  reg  stageB_tagsReadRsp_0_valid;
+  reg  stageB_tagsReadRsp_0_error;
+  reg [19:0] stageB_tagsReadRsp_0_address;
+  reg [31:0] stageB_dataReadRsp_0;
+  wire [0:0] _zz_8_;
+  reg [0:0] stageB_waysHits;
+  wire  stageB_waysHit;
+  wire [31:0] stageB_dataMux;
+  reg [3:0] stageB_mask;
+  reg [0:0] stageB_colisions;
+  reg  stageB_loaderValid;
+  reg  stageB_flusher_valid;
+  wire [31:0] stageB_requestDataBypass;
+  wire  stageB_isAmo;
+  reg  stageB_memCmdSent;
+  wire [0:0] _zz_9_;
+  reg  loader_valid;
+  reg  loader_counter_willIncrement;
+  wire  loader_counter_willClear;
+  reg [2:0] loader_counter_valueNext;
+  reg [2:0] loader_counter_value;
+  wire  loader_counter_willOverflowIfInc;
+  wire  loader_counter_willOverflow;
+  reg [0:0] loader_waysAllocator;
+  reg  loader_error;
+  reg [21:0] ways_0_tags [0:127];
+  reg [7:0] ways_0_data_symbol0 [0:1023];
+  reg [7:0] ways_0_data_symbol1 [0:1023];
+  reg [7:0] ways_0_data_symbol2 [0:1023];
+  reg [7:0] ways_0_data_symbol3 [0:1023];
+  reg [7:0] _zz_24_;
+  reg [7:0] _zz_25_;
+  reg [7:0] _zz_26_;
+  reg [7:0] _zz_27_;
+  assign _zz_12_ = (io_cpu_execute_isValid && (! io_cpu_memory_isStuck));
+  assign _zz_13_ = (((stageB_mmuRsp_refilling || io_cpu_writeBack_accessError) || io_cpu_writeBack_mmuException) || io_cpu_writeBack_unalignedAccess);
+  assign _zz_14_ = (stageB_waysHit || (stageB_request_wr && (! stageB_isAmo)));
+  assign _zz_15_ = (loader_valid && io_mem_rsp_valid);
+  assign _zz_16_ = ((((io_cpu_flush_valid && (! io_cpu_execute_isValid)) && (! io_cpu_memory_isValid)) && (! io_cpu_writeBack_isValid)) && (! io_cpu_redo));
+  assign _zz_17_ = ((! io_cpu_writeBack_isStuck) && (! stageB_mmuRspFreeze));
+  assign _zz_18_ = _zz_4_[0 : 0];
+  assign _zz_19_ = _zz_4_[1 : 1];
+  assign _zz_20_ = loader_counter_willIncrement;
+  assign _zz_21_ = {2'd0, _zz_20_};
+  assign _zz_22_ = {loader_waysAllocator,loader_waysAllocator[0]};
+  assign _zz_23_ = {tagsWriteCmd_payload_data_address,{tagsWriteCmd_payload_data_error,tagsWriteCmd_payload_data_valid}};
+  always @ (posedge io_axiClk) begin
+    if(_zz_2_) begin
+      ways_0_tags[tagsWriteCmd_payload_address] <= _zz_23_;
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(_zz_3_) begin
+      _zz_10_ <= ways_0_tags[tagsReadCmd_payload];
+    end
+  end
+
+  always @ (*) begin
+    _zz_11_ = {_zz_27_, _zz_26_, _zz_25_, _zz_24_};
+  end
+  always @ (posedge io_axiClk) begin
+    if(dataWriteCmd_payload_mask[0] && _zz_1_) begin
+      ways_0_data_symbol0[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[7 : 0];
+    end
+    if(dataWriteCmd_payload_mask[1] && _zz_1_) begin
+      ways_0_data_symbol1[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[15 : 8];
+    end
+    if(dataWriteCmd_payload_mask[2] && _zz_1_) begin
+      ways_0_data_symbol2[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[23 : 16];
+    end
+    if(dataWriteCmd_payload_mask[3] && _zz_1_) begin
+      ways_0_data_symbol3[dataWriteCmd_payload_address] <= dataWriteCmd_payload_data[31 : 24];
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    if(_zz_5_) begin
+      _zz_24_ <= ways_0_data_symbol0[dataReadCmd_payload];
+      _zz_25_ <= ways_0_data_symbol1[dataReadCmd_payload];
+      _zz_26_ <= ways_0_data_symbol2[dataReadCmd_payload];
+      _zz_27_ <= ways_0_data_symbol3[dataReadCmd_payload];
+    end
+  end
+
+  always @ (*) begin
+    _zz_1_ = 1'b0;
+    if((dataWriteCmd_valid && dataWriteCmd_payload_way[0]))begin
+      _zz_1_ = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_2_ = 1'b0;
+    if((tagsWriteCmd_valid && tagsWriteCmd_payload_way[0]))begin
+      _zz_2_ = 1'b1;
+    end
+  end
+
+  assign haltCpu = 1'b0;
+  assign _zz_3_ = (tagsReadCmd_valid && (! io_cpu_memory_isStuck));
+  assign _zz_4_ = _zz_10_;
+  assign ways_0_tagsReadRsp_valid = _zz_18_[0];
+  assign ways_0_tagsReadRsp_error = _zz_19_[0];
+  assign ways_0_tagsReadRsp_address = _zz_4_[21 : 2];
+  assign _zz_5_ = (dataReadCmd_valid && (! io_cpu_memory_isStuck));
+  assign ways_0_dataReadRsp = _zz_11_;
+  always @ (*) begin
+    tagsReadCmd_valid = 1'b0;
+    if(_zz_12_)begin
+      tagsReadCmd_valid = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    tagsReadCmd_payload = (7'bxxxxxxx);
+    if(_zz_12_)begin
+      tagsReadCmd_payload = io_cpu_execute_address[11 : 5];
+    end
+  end
+
+  always @ (*) begin
+    dataReadCmd_valid = 1'b0;
+    if(_zz_12_)begin
+      dataReadCmd_valid = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    dataReadCmd_payload = (10'bxxxxxxxxxx);
+    if(_zz_12_)begin
+      dataReadCmd_payload = io_cpu_execute_address[11 : 2];
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_valid = 1'b0;
+    if(stageB_flusher_valid)begin
+      tagsWriteCmd_valid = stageB_flusher_valid;
+    end
+    if(_zz_13_)begin
+      tagsWriteCmd_valid = 1'b0;
+    end
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_valid = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_payload_way = (1'bx);
+    if(stageB_flusher_valid)begin
+      tagsWriteCmd_payload_way = (1'b1);
+    end
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_payload_way = loader_waysAllocator;
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_payload_address = (7'bxxxxxxx);
+    if(stageB_flusher_valid)begin
+      tagsWriteCmd_payload_address = stageB_mmuRsp_physicalAddress[11 : 5];
+    end
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_payload_address = stageB_mmuRsp_physicalAddress[11 : 5];
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_payload_data_valid = 1'bx;
+    if(stageB_flusher_valid)begin
+      tagsWriteCmd_payload_data_valid = 1'b0;
+    end
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_payload_data_valid = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_payload_data_error = 1'bx;
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_payload_data_error = (loader_error || io_mem_rsp_payload_error);
+    end
+  end
+
+  always @ (*) begin
+    tagsWriteCmd_payload_data_address = (20'bxxxxxxxxxxxxxxxxxxxx);
+    if(loader_counter_willOverflow)begin
+      tagsWriteCmd_payload_data_address = stageB_mmuRsp_physicalAddress[31 : 12];
+    end
+  end
+
+  always @ (*) begin
+    dataWriteCmd_valid = 1'b0;
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          if((stageB_request_wr && stageB_waysHit))begin
+            dataWriteCmd_valid = 1'b1;
+          end
+        end
+      end
+    end
+    if(_zz_13_)begin
+      dataWriteCmd_valid = 1'b0;
+    end
+    if(_zz_15_)begin
+      dataWriteCmd_valid = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    dataWriteCmd_payload_way = (1'bx);
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          dataWriteCmd_payload_way = stageB_waysHits;
+        end
+      end
+    end
+    if(_zz_15_)begin
+      dataWriteCmd_payload_way = loader_waysAllocator;
+    end
+  end
+
+  always @ (*) begin
+    dataWriteCmd_payload_address = (10'bxxxxxxxxxx);
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          dataWriteCmd_payload_address = stageB_mmuRsp_physicalAddress[11 : 2];
+        end
+      end
+    end
+    if(_zz_15_)begin
+      dataWriteCmd_payload_address = {stageB_mmuRsp_physicalAddress[11 : 5],loader_counter_value};
+    end
+  end
+
+  always @ (*) begin
+    dataWriteCmd_payload_data = (32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx);
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          dataWriteCmd_payload_data = stageB_requestDataBypass;
+        end
+      end
+    end
+    if(_zz_15_)begin
+      dataWriteCmd_payload_data = io_mem_rsp_payload_data;
+    end
+  end
+
+  always @ (*) begin
+    dataWriteCmd_payload_mask = (4'bxxxx);
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          dataWriteCmd_payload_mask = stageB_mask;
+        end
+      end
+    end
+    if(_zz_15_)begin
+      dataWriteCmd_payload_mask = (4'b1111);
+    end
+  end
+
+  always @ (*) begin
+    case(io_cpu_execute_args_size)
+      2'b00 : begin
+        _zz_6_ = (4'b0001);
+      end
+      2'b01 : begin
+        _zz_6_ = (4'b0011);
+      end
+      default : begin
+        _zz_6_ = (4'b1111);
+      end
+    endcase
+  end
+
+  assign stage0_mask = (_zz_6_ <<< io_cpu_execute_address[1 : 0]);
+  assign stage0_colisions[0] = (((dataWriteCmd_valid && dataWriteCmd_payload_way[0]) && (dataWriteCmd_payload_address == io_cpu_execute_address[11 : 2])) && ((stage0_mask & dataWriteCmd_payload_mask) != (4'b0000)));
+  assign io_cpu_memory_mmuBus_cmd_isValid = io_cpu_memory_isValid;
+  assign io_cpu_memory_mmuBus_cmd_virtualAddress = io_cpu_memory_address;
+  assign io_cpu_memory_mmuBus_cmd_bypassTranslation = 1'b0;
+  assign io_cpu_memory_mmuBus_end = ((! io_cpu_memory_isStuck) || io_cpu_memory_isRemoved);
+  assign io_cpu_memory_isWrite = stageA_request_wr;
+  assign stageA_wayHits_0 = ((io_cpu_memory_mmuBus_rsp_physicalAddress[31 : 12] == ways_0_tagsReadRsp_address) && ways_0_tagsReadRsp_valid);
+  assign _zz_7_[0] = (((dataWriteCmd_valid && dataWriteCmd_payload_way[0]) && (dataWriteCmd_payload_address == io_cpu_memory_address[11 : 2])) && ((stageA_mask & dataWriteCmd_payload_mask) != (4'b0000)));
+  assign stageA_colisions = (stage0_colisions_regNextWhen | _zz_7_);
+  always @ (*) begin
+    stageB_mmuRspFreeze = 1'b0;
+    if((stageB_loaderValid || loader_valid))begin
+      stageB_mmuRspFreeze = 1'b1;
+    end
+  end
+
+  assign _zz_8_[0] = stageA_wayHits_0;
+  assign stageB_waysHit = (stageB_waysHits != (1'b0));
+  assign stageB_dataMux = stageB_dataReadRsp_0;
+  always @ (*) begin
+    stageB_loaderValid = 1'b0;
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(! _zz_14_) begin
+          if(io_mem_cmd_ready)begin
+            stageB_loaderValid = 1'b1;
+          end
+        end
+      end
+    end
+    if(_zz_13_)begin
+      stageB_loaderValid = 1'b0;
+    end
+  end
+
+  always @ (*) begin
+    io_cpu_writeBack_haltIt = io_cpu_writeBack_isValid;
+    if(stageB_flusher_valid)begin
+      io_cpu_writeBack_haltIt = 1'b1;
+    end
+    if(io_cpu_writeBack_isValid)begin
+      if(stageB_mmuRsp_isIoAccess)begin
+        if((stageB_request_wr ? io_mem_cmd_ready : io_mem_rsp_valid))begin
+          io_cpu_writeBack_haltIt = 1'b0;
+        end
+      end else begin
+        if(_zz_14_)begin
+          if(((! stageB_request_wr) || io_mem_cmd_ready))begin
+            io_cpu_writeBack_haltIt = 1'b0;
+          end
+        end
+      end
+    end
+    if(_zz_13_)begin
+      io_cpu_writeBack_haltIt = 1'b0;
+    end
+  end
+
+  always @ (*) begin
+    io_cpu_flush_ready = 1'b0;
+    if(_zz_16_)begin
+      io_cpu_flush_ready = 1'b1;
+    end
+  end
+
+  assign stageB_requestDataBypass = stageB_request_data;
+  assign stageB_isAmo = 1'b0;
+  always @ (*) begin
+    io_cpu_redo = 1'b0;
+    if(io_cpu_writeBack_isValid)begin
+      if(! stageB_mmuRsp_isIoAccess) begin
+        if(_zz_14_)begin
+          if((((! stageB_request_wr) || stageB_isAmo) && ((stageB_colisions & stageB_waysHits) != (1'b0))))begin
+            io_cpu_redo = 1'b1;
+          end
+        end
+      end
+    end
+    if((io_cpu_writeBack_isValid && stageB_mmuRsp_refilling))begin
+      io_cpu_redo = 1'b1;
+    end
+    if(loader_valid)begin
+      io_cpu_redo = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    io_cpu_writeBack_accessError = 1'b0;
+    if(stageB_mmuRsp_isIoAccess)begin
+      io_cpu_writeBack_accessError = (io_mem_rsp_valid && io_mem_rsp_payload_error);
+    end else begin
+      io_cpu_writeBack_accessError = ((stageB_waysHits & _zz_9_) != (1'b0));
+    end
+  end
+
+  assign io_cpu_writeBack_mmuException = (io_cpu_writeBack_isValid && ((stageB_mmuRsp_exception || ((! stageB_mmuRsp_allowWrite) && stageB_request_wr)) || ((! stageB_mmuRsp_allowRead) && ((! stageB_request_wr) || stageB_isAmo))));
+  assign io_cpu_writeBack_unalignedAccess = (io_cpu_writeBack_isValid && (((stageB_request_size == (2'b10)) && (stageB_mmuRsp_physicalAddress[1 : 0] != (2'b00))) || ((stageB_request_size == (2'b01)) && (stageB_mmuRsp_physicalAddress[0 : 0] != (1'b0)))));
+  assign io_cpu_writeBack_isWrite = stageB_request_wr;
+  always @ (*) begin
+    io_mem_cmd_valid = 1'b0;
+    if(io_cpu_writeBack_isValid)begin
+      if(stageB_mmuRsp_isIoAccess)begin
+        io_mem_cmd_valid = (! stageB_memCmdSent);
+      end else begin
+        if(_zz_14_)begin
+          if(stageB_request_wr)begin
+            io_mem_cmd_valid = 1'b1;
+          end
+        end else begin
+          if((! stageB_memCmdSent))begin
+            io_mem_cmd_valid = 1'b1;
+          end
+        end
+      end
+    end
+    if(_zz_13_)begin
+      io_mem_cmd_valid = 1'b0;
+    end
+  end
+
+  always @ (*) begin
+    io_mem_cmd_payload_address = (32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx);
+    if(io_cpu_writeBack_isValid)begin
+      if(stageB_mmuRsp_isIoAccess)begin
+        io_mem_cmd_payload_address = {stageB_mmuRsp_physicalAddress[31 : 2],(2'b00)};
+      end else begin
+        if(_zz_14_)begin
+          io_mem_cmd_payload_address = {stageB_mmuRsp_physicalAddress[31 : 2],(2'b00)};
+        end else begin
+          io_mem_cmd_payload_address = {stageB_mmuRsp_physicalAddress[31 : 5],(5'b00000)};
+        end
+      end
+    end
+  end
+
+  always @ (*) begin
+    io_mem_cmd_payload_length = (3'bxxx);
+    if(io_cpu_writeBack_isValid)begin
+      if(stageB_mmuRsp_isIoAccess)begin
+        io_mem_cmd_payload_length = (3'b000);
+      end else begin
+        if(_zz_14_)begin
+          io_mem_cmd_payload_length = (3'b000);
+        end else begin
+          io_mem_cmd_payload_length = (3'b111);
+        end
+      end
+    end
+  end
+
+  always @ (*) begin
+    io_mem_cmd_payload_last = 1'bx;
+    if(io_cpu_writeBack_isValid)begin
+      if(stageB_mmuRsp_isIoAccess)begin
+        io_mem_cmd_payload_last = 1'b1;
+      end else begin
+        if(_zz_14_)begin
+          io_mem_cmd_payload_last = 1'b1;
+        end else begin
+          io_mem_cmd_payload_last = 1'b1;
+        end
       end
     end
   end
@@ -5530,6 +6274,152 @@ endmodule
 module StreamArbiter_1_ (
       input   io_inputs_0_valid,
       output  io_inputs_0_ready,
+      input  [19:0] io_inputs_0_payload_addr,
+      input  [3:0] io_inputs_0_payload_id,
+      input  [7:0] io_inputs_0_payload_len,
+      input  [2:0] io_inputs_0_payload_size,
+      input  [1:0] io_inputs_0_payload_burst,
+      input   io_inputs_0_payload_write,
+      output  io_output_valid,
+      input   io_output_ready,
+      output [19:0] io_output_payload_addr,
+      output [3:0] io_output_payload_id,
+      output [7:0] io_output_payload_len,
+      output [2:0] io_output_payload_size,
+      output [1:0] io_output_payload_burst,
+      output  io_output_payload_write,
+      output [0:0] io_chosenOH,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  wire [1:0] _zz_4_;
+  wire [0:0] _zz_5_;
+  wire [1:0] _zz_6_;
+  wire [0:0] _zz_7_;
+  wire [0:0] _zz_8_;
+  reg  locked;
+  wire  maskProposal_0;
+  reg  maskLocked_0;
+  wire  maskRouted_0;
+  wire [0:0] _zz_1_;
+  wire [1:0] _zz_2_;
+  wire [1:0] _zz_3_;
+  assign _zz_4_ = (_zz_2_ - _zz_6_);
+  assign _zz_5_ = maskLocked_0;
+  assign _zz_6_ = {1'd0, _zz_5_};
+  assign _zz_7_ = _zz_8_[0 : 0];
+  assign _zz_8_ = (_zz_3_[1 : 1] | _zz_3_[0 : 0]);
+  assign maskRouted_0 = (locked ? maskLocked_0 : maskProposal_0);
+  assign _zz_1_ = io_inputs_0_valid;
+  assign _zz_2_ = {_zz_1_,_zz_1_};
+  assign _zz_3_ = (_zz_2_ & (~ _zz_4_));
+  assign maskProposal_0 = _zz_7_[0];
+  assign io_output_valid = (io_inputs_0_valid && maskRouted_0);
+  assign io_output_payload_addr = io_inputs_0_payload_addr;
+  assign io_output_payload_id = io_inputs_0_payload_id;
+  assign io_output_payload_len = io_inputs_0_payload_len;
+  assign io_output_payload_size = io_inputs_0_payload_size;
+  assign io_output_payload_burst = io_inputs_0_payload_burst;
+  assign io_output_payload_write = io_inputs_0_payload_write;
+  assign io_inputs_0_ready = (maskRouted_0 && io_output_ready);
+  assign io_chosenOH = maskRouted_0;
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      locked <= 1'b0;
+      maskLocked_0 <= 1'b1;
+    end else begin
+      if(io_output_valid)begin
+        maskLocked_0 <= maskRouted_0;
+      end
+      if(io_output_valid)begin
+        locked <= 1'b1;
+      end
+      if((io_output_valid && io_output_ready))begin
+        locked <= 1'b0;
+      end
+    end
+  end
+
+endmodule
+
+module StreamFork_1_ (
+      input   io_input_valid,
+      output reg  io_input_ready,
+      input  [19:0] io_input_payload_addr,
+      input  [3:0] io_input_payload_id,
+      input  [7:0] io_input_payload_len,
+      input  [2:0] io_input_payload_size,
+      input  [1:0] io_input_payload_burst,
+      input   io_input_payload_write,
+      output  io_outputs_0_valid,
+      input   io_outputs_0_ready,
+      output [19:0] io_outputs_0_payload_addr,
+      output [3:0] io_outputs_0_payload_id,
+      output [7:0] io_outputs_0_payload_len,
+      output [2:0] io_outputs_0_payload_size,
+      output [1:0] io_outputs_0_payload_burst,
+      output  io_outputs_0_payload_write,
+      output  io_outputs_1_valid,
+      input   io_outputs_1_ready,
+      output [19:0] io_outputs_1_payload_addr,
+      output [3:0] io_outputs_1_payload_id,
+      output [7:0] io_outputs_1_payload_len,
+      output [2:0] io_outputs_1_payload_size,
+      output [1:0] io_outputs_1_payload_burst,
+      output  io_outputs_1_payload_write,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  reg  linkEnable_0;
+  reg  linkEnable_1;
+  always @ (*) begin
+    io_input_ready = 1'b1;
+    if(((! io_outputs_0_ready) && linkEnable_0))begin
+      io_input_ready = 1'b0;
+    end
+    if(((! io_outputs_1_ready) && linkEnable_1))begin
+      io_input_ready = 1'b0;
+    end
+  end
+
+  assign io_outputs_0_valid = (io_input_valid && linkEnable_0);
+  assign io_outputs_0_payload_addr = io_input_payload_addr;
+  assign io_outputs_0_payload_id = io_input_payload_id;
+  assign io_outputs_0_payload_len = io_input_payload_len;
+  assign io_outputs_0_payload_size = io_input_payload_size;
+  assign io_outputs_0_payload_burst = io_input_payload_burst;
+  assign io_outputs_0_payload_write = io_input_payload_write;
+  assign io_outputs_1_valid = (io_input_valid && linkEnable_1);
+  assign io_outputs_1_payload_addr = io_input_payload_addr;
+  assign io_outputs_1_payload_id = io_input_payload_id;
+  assign io_outputs_1_payload_len = io_input_payload_len;
+  assign io_outputs_1_payload_size = io_input_payload_size;
+  assign io_outputs_1_payload_burst = io_input_payload_burst;
+  assign io_outputs_1_payload_write = io_input_payload_write;
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      linkEnable_0 <= 1'b1;
+      linkEnable_1 <= 1'b1;
+    end else begin
+      if((io_outputs_0_valid && io_outputs_0_ready))begin
+        linkEnable_0 <= 1'b0;
+      end
+      if((io_outputs_1_valid && io_outputs_1_ready))begin
+        linkEnable_1 <= 1'b0;
+      end
+      if(io_input_ready)begin
+        linkEnable_0 <= 1'b1;
+        linkEnable_1 <= 1'b1;
+      end
+    end
+  end
+
+endmodule
+
+
+//StreamFifoLowLatency_2_ remplaced by StreamFifoLowLatency_1_
+
+module StreamArbiter_2_ (
+      input   io_inputs_0_valid,
+      output  io_inputs_0_ready,
       input  [26:0] io_inputs_0_payload_addr,
       input  [1:0] io_inputs_0_payload_id,
       input  [7:0] io_inputs_0_payload_len,
@@ -5676,7 +6566,7 @@ module StreamArbiter_1_ (
 
 endmodule
 
-module StreamFork_1_ (
+module StreamFork_2_ (
       input   io_input_valid,
       output reg  io_input_ready,
       input  [26:0] io_input_payload_addr,
@@ -5697,152 +6587,6 @@ module StreamFork_1_ (
       input   io_outputs_1_ready,
       output [26:0] io_outputs_1_payload_addr,
       output [1:0] io_outputs_1_payload_id,
-      output [7:0] io_outputs_1_payload_len,
-      output [2:0] io_outputs_1_payload_size,
-      output [1:0] io_outputs_1_payload_burst,
-      output  io_outputs_1_payload_write,
-      input   io_axiClk,
-      input   resetCtrl_axiReset);
-  reg  linkEnable_0;
-  reg  linkEnable_1;
-  always @ (*) begin
-    io_input_ready = 1'b1;
-    if(((! io_outputs_0_ready) && linkEnable_0))begin
-      io_input_ready = 1'b0;
-    end
-    if(((! io_outputs_1_ready) && linkEnable_1))begin
-      io_input_ready = 1'b0;
-    end
-  end
-
-  assign io_outputs_0_valid = (io_input_valid && linkEnable_0);
-  assign io_outputs_0_payload_addr = io_input_payload_addr;
-  assign io_outputs_0_payload_id = io_input_payload_id;
-  assign io_outputs_0_payload_len = io_input_payload_len;
-  assign io_outputs_0_payload_size = io_input_payload_size;
-  assign io_outputs_0_payload_burst = io_input_payload_burst;
-  assign io_outputs_0_payload_write = io_input_payload_write;
-  assign io_outputs_1_valid = (io_input_valid && linkEnable_1);
-  assign io_outputs_1_payload_addr = io_input_payload_addr;
-  assign io_outputs_1_payload_id = io_input_payload_id;
-  assign io_outputs_1_payload_len = io_input_payload_len;
-  assign io_outputs_1_payload_size = io_input_payload_size;
-  assign io_outputs_1_payload_burst = io_input_payload_burst;
-  assign io_outputs_1_payload_write = io_input_payload_write;
-  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
-    if (resetCtrl_axiReset) begin
-      linkEnable_0 <= 1'b1;
-      linkEnable_1 <= 1'b1;
-    end else begin
-      if((io_outputs_0_valid && io_outputs_0_ready))begin
-        linkEnable_0 <= 1'b0;
-      end
-      if((io_outputs_1_valid && io_outputs_1_ready))begin
-        linkEnable_1 <= 1'b0;
-      end
-      if(io_input_ready)begin
-        linkEnable_0 <= 1'b1;
-        linkEnable_1 <= 1'b1;
-      end
-    end
-  end
-
-endmodule
-
-
-//StreamFifoLowLatency_2_ remplaced by StreamFifoLowLatency_1_
-
-module StreamArbiter_2_ (
-      input   io_inputs_0_valid,
-      output  io_inputs_0_ready,
-      input  [19:0] io_inputs_0_payload_addr,
-      input  [3:0] io_inputs_0_payload_id,
-      input  [7:0] io_inputs_0_payload_len,
-      input  [2:0] io_inputs_0_payload_size,
-      input  [1:0] io_inputs_0_payload_burst,
-      input   io_inputs_0_payload_write,
-      output  io_output_valid,
-      input   io_output_ready,
-      output [19:0] io_output_payload_addr,
-      output [3:0] io_output_payload_id,
-      output [7:0] io_output_payload_len,
-      output [2:0] io_output_payload_size,
-      output [1:0] io_output_payload_burst,
-      output  io_output_payload_write,
-      output [0:0] io_chosenOH,
-      input   io_axiClk,
-      input   resetCtrl_axiReset);
-  wire [1:0] _zz_4_;
-  wire [0:0] _zz_5_;
-  wire [1:0] _zz_6_;
-  wire [0:0] _zz_7_;
-  wire [0:0] _zz_8_;
-  reg  locked;
-  wire  maskProposal_0;
-  reg  maskLocked_0;
-  wire  maskRouted_0;
-  wire [0:0] _zz_1_;
-  wire [1:0] _zz_2_;
-  wire [1:0] _zz_3_;
-  assign _zz_4_ = (_zz_2_ - _zz_6_);
-  assign _zz_5_ = maskLocked_0;
-  assign _zz_6_ = {1'd0, _zz_5_};
-  assign _zz_7_ = _zz_8_[0 : 0];
-  assign _zz_8_ = (_zz_3_[1 : 1] | _zz_3_[0 : 0]);
-  assign maskRouted_0 = (locked ? maskLocked_0 : maskProposal_0);
-  assign _zz_1_ = io_inputs_0_valid;
-  assign _zz_2_ = {_zz_1_,_zz_1_};
-  assign _zz_3_ = (_zz_2_ & (~ _zz_4_));
-  assign maskProposal_0 = _zz_7_[0];
-  assign io_output_valid = (io_inputs_0_valid && maskRouted_0);
-  assign io_output_payload_addr = io_inputs_0_payload_addr;
-  assign io_output_payload_id = io_inputs_0_payload_id;
-  assign io_output_payload_len = io_inputs_0_payload_len;
-  assign io_output_payload_size = io_inputs_0_payload_size;
-  assign io_output_payload_burst = io_inputs_0_payload_burst;
-  assign io_output_payload_write = io_inputs_0_payload_write;
-  assign io_inputs_0_ready = (maskRouted_0 && io_output_ready);
-  assign io_chosenOH = maskRouted_0;
-  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
-    if (resetCtrl_axiReset) begin
-      locked <= 1'b0;
-      maskLocked_0 <= 1'b1;
-    end else begin
-      if(io_output_valid)begin
-        maskLocked_0 <= maskRouted_0;
-      end
-      if(io_output_valid)begin
-        locked <= 1'b1;
-      end
-      if((io_output_valid && io_output_ready))begin
-        locked <= 1'b0;
-      end
-    end
-  end
-
-endmodule
-
-module StreamFork_2_ (
-      input   io_input_valid,
-      output reg  io_input_ready,
-      input  [19:0] io_input_payload_addr,
-      input  [3:0] io_input_payload_id,
-      input  [7:0] io_input_payload_len,
-      input  [2:0] io_input_payload_size,
-      input  [1:0] io_input_payload_burst,
-      input   io_input_payload_write,
-      output  io_outputs_0_valid,
-      input   io_outputs_0_ready,
-      output [19:0] io_outputs_0_payload_addr,
-      output [3:0] io_outputs_0_payload_id,
-      output [7:0] io_outputs_0_payload_len,
-      output [2:0] io_outputs_0_payload_size,
-      output [1:0] io_outputs_0_payload_burst,
-      output  io_outputs_0_payload_write,
-      output  io_outputs_1_valid,
-      input   io_outputs_1_ready,
-      output [19:0] io_outputs_1_payload_addr,
-      output [3:0] io_outputs_1_payload_id,
       output [7:0] io_outputs_1_payload_len,
       output [2:0] io_outputs_1_payload_size,
       output [1:0] io_outputs_1_payload_burst,
@@ -6920,6 +7664,1428 @@ module PinsecTimerCtrl (
       output  io_interrupt,
       input   io_axiClk,
       input   resetCtrl_axiReset);
+  wire  _zz_11_;
+  wire  _zz_12_;
+  wire  _zz_13_;
+  wire  _zz_14_;
+  wire  _zz_15_;
+  wire  _zz_16_;
+  wire  _zz_17_;
+  wire  _zz_18_;
+  reg [3:0] _zz_19_;
+  reg [3:0] _zz_20_;
+  wire  bufferCC_13__io_dataOut_clear;
+  wire  bufferCC_13__io_dataOut_tick;
+  wire  prescaler_1__io_overflow;
+  wire  timerA_io_full;
+  wire [31:0] timerA_io_value;
+  wire  timerB_io_full;
+  wire [15:0] timerB_io_value;
+  wire  timerC_io_full;
+  wire [15:0] timerC_io_value;
+  wire  timerD_io_full;
+  wire [15:0] timerD_io_value;
+  wire [3:0] interruptCtrl_1__io_pendings;
+  wire  external_clear;
+  wire  external_tick;
+  wire  busCtrl_askWrite;
+  wire  busCtrl_askRead;
+  wire  busCtrl_doWrite;
+  wire  busCtrl_doRead;
+  reg [15:0] _zz_1_;
+  reg  _zz_2_;
+  reg [1:0] timerABridge_ticksEnable;
+  reg [0:0] timerABridge_clearsEnable;
+  reg  timerABridge_busClearing;
+  reg [31:0] timerA_io_limit_driver;
+  reg  _zz_3_;
+  reg  _zz_4_;
+  reg [2:0] timerBBridge_ticksEnable;
+  reg [1:0] timerBBridge_clearsEnable;
+  reg  timerBBridge_busClearing;
+  reg [15:0] timerB_io_limit_driver;
+  reg  _zz_5_;
+  reg  _zz_6_;
+  reg [2:0] timerCBridge_ticksEnable;
+  reg [1:0] timerCBridge_clearsEnable;
+  reg  timerCBridge_busClearing;
+  reg [15:0] timerC_io_limit_driver;
+  reg  _zz_7_;
+  reg  _zz_8_;
+  reg [2:0] timerDBridge_ticksEnable;
+  reg [1:0] timerDBridge_clearsEnable;
+  reg  timerDBridge_busClearing;
+  reg [15:0] timerD_io_limit_driver;
+  reg  _zz_9_;
+  reg  _zz_10_;
+  reg [3:0] interruptCtrl_1__io_masks_driver;
+  BufferCC_8_ bufferCC_13_ ( 
+    .io_dataIn_clear(io_external_clear),
+    .io_dataIn_tick(io_external_tick),
+    .io_dataOut_clear(bufferCC_13__io_dataOut_clear),
+    .io_dataOut_tick(bufferCC_13__io_dataOut_tick),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  Prescaler prescaler_1_ ( 
+    .io_clear(_zz_2_),
+    .io_limit(_zz_1_),
+    .io_overflow(prescaler_1__io_overflow),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  Timer timerA ( 
+    .io_tick(_zz_11_),
+    .io_clear(_zz_12_),
+    .io_limit(timerA_io_limit_driver),
+    .io_full(timerA_io_full),
+    .io_value(timerA_io_value),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  Timer_1_ timerB ( 
+    .io_tick(_zz_13_),
+    .io_clear(_zz_14_),
+    .io_limit(timerB_io_limit_driver),
+    .io_full(timerB_io_full),
+    .io_value(timerB_io_value),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  Timer_1_ timerC ( 
+    .io_tick(_zz_15_),
+    .io_clear(_zz_16_),
+    .io_limit(timerC_io_limit_driver),
+    .io_full(timerC_io_full),
+    .io_value(timerC_io_value),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  Timer_1_ timerD ( 
+    .io_tick(_zz_17_),
+    .io_clear(_zz_18_),
+    .io_limit(timerD_io_limit_driver),
+    .io_full(timerD_io_full),
+    .io_value(timerD_io_value),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  InterruptCtrl interruptCtrl_1_ ( 
+    .io_inputs(_zz_19_),
+    .io_clears(_zz_20_),
+    .io_masks(interruptCtrl_1__io_masks_driver),
+    .io_pendings(interruptCtrl_1__io_pendings),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  assign external_clear = bufferCC_13__io_dataOut_clear;
+  assign external_tick = bufferCC_13__io_dataOut_tick;
+  assign io_apb_PREADY = 1'b1;
+  always @ (*) begin
+    io_apb_PRDATA = (32'b00000000000000000000000000000000);
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+        io_apb_PRDATA[15 : 0] = _zz_1_;
+      end
+      8'b01000000 : begin
+        io_apb_PRDATA[1 : 0] = timerABridge_ticksEnable;
+        io_apb_PRDATA[16 : 16] = timerABridge_clearsEnable;
+      end
+      8'b01000100 : begin
+        io_apb_PRDATA[31 : 0] = timerA_io_limit_driver;
+      end
+      8'b01001000 : begin
+        io_apb_PRDATA[31 : 0] = timerA_io_value;
+      end
+      8'b01010000 : begin
+        io_apb_PRDATA[2 : 0] = timerBBridge_ticksEnable;
+        io_apb_PRDATA[17 : 16] = timerBBridge_clearsEnable;
+      end
+      8'b01010100 : begin
+        io_apb_PRDATA[15 : 0] = timerB_io_limit_driver;
+      end
+      8'b01011000 : begin
+        io_apb_PRDATA[15 : 0] = timerB_io_value;
+      end
+      8'b01100000 : begin
+        io_apb_PRDATA[2 : 0] = timerCBridge_ticksEnable;
+        io_apb_PRDATA[17 : 16] = timerCBridge_clearsEnable;
+      end
+      8'b01100100 : begin
+        io_apb_PRDATA[15 : 0] = timerC_io_limit_driver;
+      end
+      8'b01101000 : begin
+        io_apb_PRDATA[15 : 0] = timerC_io_value;
+      end
+      8'b01110000 : begin
+        io_apb_PRDATA[2 : 0] = timerDBridge_ticksEnable;
+        io_apb_PRDATA[17 : 16] = timerDBridge_clearsEnable;
+      end
+      8'b01110100 : begin
+        io_apb_PRDATA[15 : 0] = timerD_io_limit_driver;
+      end
+      8'b01111000 : begin
+        io_apb_PRDATA[15 : 0] = timerD_io_value;
+      end
+      8'b00010000 : begin
+        io_apb_PRDATA[3 : 0] = interruptCtrl_1__io_pendings;
+      end
+      8'b00010100 : begin
+        io_apb_PRDATA[3 : 0] = interruptCtrl_1__io_masks_driver;
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign io_apb_PSLVERROR = 1'b0;
+  assign busCtrl_askWrite = ((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PWRITE);
+  assign busCtrl_askRead = ((io_apb_PSEL[0] && io_apb_PENABLE) && (! io_apb_PWRITE));
+  assign busCtrl_doWrite = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && io_apb_PWRITE);
+  assign busCtrl_doRead = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && (! io_apb_PWRITE));
+  always @ (*) begin
+    _zz_2_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_2_ = 1'b1;
+        end
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    timerABridge_busClearing = 1'b0;
+    if(_zz_3_)begin
+      timerABridge_busClearing = 1'b1;
+    end
+    if(_zz_4_)begin
+      timerABridge_busClearing = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_3_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+        if(busCtrl_doWrite)begin
+          _zz_3_ = 1'b1;
+        end
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    _zz_4_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_4_ = 1'b1;
+        end
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign _zz_12_ = (((timerABridge_clearsEnable & timerA_io_full) != (1'b0)) || timerABridge_busClearing);
+  assign _zz_11_ = ((timerABridge_ticksEnable & {prescaler_1__io_overflow,1'b1}) != (2'b00));
+  always @ (*) begin
+    timerBBridge_busClearing = 1'b0;
+    if(_zz_5_)begin
+      timerBBridge_busClearing = 1'b1;
+    end
+    if(_zz_6_)begin
+      timerBBridge_busClearing = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_5_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+        if(busCtrl_doWrite)begin
+          _zz_5_ = 1'b1;
+        end
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    _zz_6_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_6_ = 1'b1;
+        end
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign _zz_14_ = (((timerBBridge_clearsEnable & {external_clear,timerB_io_full}) != (2'b00)) || timerBBridge_busClearing);
+  assign _zz_13_ = ((timerBBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
+  always @ (*) begin
+    timerCBridge_busClearing = 1'b0;
+    if(_zz_7_)begin
+      timerCBridge_busClearing = 1'b1;
+    end
+    if(_zz_8_)begin
+      timerCBridge_busClearing = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_7_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+        if(busCtrl_doWrite)begin
+          _zz_7_ = 1'b1;
+        end
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    _zz_8_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_8_ = 1'b1;
+        end
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign _zz_16_ = (((timerCBridge_clearsEnable & {external_clear,timerC_io_full}) != (2'b00)) || timerCBridge_busClearing);
+  assign _zz_15_ = ((timerCBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
+  always @ (*) begin
+    timerDBridge_busClearing = 1'b0;
+    if(_zz_9_)begin
+      timerDBridge_busClearing = 1'b1;
+    end
+    if(_zz_10_)begin
+      timerDBridge_busClearing = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_9_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+        if(busCtrl_doWrite)begin
+          _zz_9_ = 1'b1;
+        end
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    _zz_10_ = 1'b0;
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_10_ = 1'b1;
+        end
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign _zz_18_ = (((timerDBridge_clearsEnable & {external_clear,timerD_io_full}) != (2'b00)) || timerDBridge_busClearing);
+  assign _zz_17_ = ((timerDBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
+  always @ (*) begin
+    _zz_20_ = (4'b0000);
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_20_ = io_apb_PWDATA[3 : 0];
+        end
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  always @ (*) begin
+    _zz_19_[0] = timerA_io_full;
+    _zz_19_[1] = timerB_io_full;
+    _zz_19_[2] = timerC_io_full;
+    _zz_19_[3] = timerD_io_full;
+  end
+
+  assign io_interrupt = (interruptCtrl_1__io_pendings != (4'b0000));
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      timerABridge_ticksEnable <= (2'b00);
+      timerABridge_clearsEnable <= (1'b0);
+      timerBBridge_ticksEnable <= (3'b000);
+      timerBBridge_clearsEnable <= (2'b00);
+      timerCBridge_ticksEnable <= (3'b000);
+      timerCBridge_clearsEnable <= (2'b00);
+      timerDBridge_ticksEnable <= (3'b000);
+      timerDBridge_clearsEnable <= (2'b00);
+      interruptCtrl_1__io_masks_driver <= (4'b0000);
+    end else begin
+      case(io_apb_PADDR)
+        8'b00000000 : begin
+        end
+        8'b01000000 : begin
+          if(busCtrl_doWrite)begin
+            timerABridge_ticksEnable <= io_apb_PWDATA[1 : 0];
+            timerABridge_clearsEnable <= io_apb_PWDATA[16 : 16];
+          end
+        end
+        8'b01000100 : begin
+        end
+        8'b01001000 : begin
+        end
+        8'b01010000 : begin
+          if(busCtrl_doWrite)begin
+            timerBBridge_ticksEnable <= io_apb_PWDATA[2 : 0];
+            timerBBridge_clearsEnable <= io_apb_PWDATA[17 : 16];
+          end
+        end
+        8'b01010100 : begin
+        end
+        8'b01011000 : begin
+        end
+        8'b01100000 : begin
+          if(busCtrl_doWrite)begin
+            timerCBridge_ticksEnable <= io_apb_PWDATA[2 : 0];
+            timerCBridge_clearsEnable <= io_apb_PWDATA[17 : 16];
+          end
+        end
+        8'b01100100 : begin
+        end
+        8'b01101000 : begin
+        end
+        8'b01110000 : begin
+          if(busCtrl_doWrite)begin
+            timerDBridge_ticksEnable <= io_apb_PWDATA[2 : 0];
+            timerDBridge_clearsEnable <= io_apb_PWDATA[17 : 16];
+          end
+        end
+        8'b01110100 : begin
+        end
+        8'b01111000 : begin
+        end
+        8'b00010000 : begin
+        end
+        8'b00010100 : begin
+          if(busCtrl_doWrite)begin
+            interruptCtrl_1__io_masks_driver <= io_apb_PWDATA[3 : 0];
+          end
+        end
+        default : begin
+        end
+      endcase
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_1_ <= io_apb_PWDATA[15 : 0];
+        end
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+        if(busCtrl_doWrite)begin
+          timerA_io_limit_driver <= io_apb_PWDATA[31 : 0];
+        end
+      end
+      8'b01001000 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+        if(busCtrl_doWrite)begin
+          timerB_io_limit_driver <= io_apb_PWDATA[15 : 0];
+        end
+      end
+      8'b01011000 : begin
+      end
+      8'b01100000 : begin
+      end
+      8'b01100100 : begin
+        if(busCtrl_doWrite)begin
+          timerC_io_limit_driver <= io_apb_PWDATA[15 : 0];
+        end
+      end
+      8'b01101000 : begin
+      end
+      8'b01110000 : begin
+      end
+      8'b01110100 : begin
+        if(busCtrl_doWrite)begin
+          timerD_io_limit_driver <= io_apb_PWDATA[15 : 0];
+        end
+      end
+      8'b01111000 : begin
+      end
+      8'b00010000 : begin
+      end
+      8'b00010100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+endmodule
+
+module Apb3UartCtrl (
+      input  [3:0] io_apb_PADDR,
+      input  [0:0] io_apb_PSEL,
+      input   io_apb_PENABLE,
+      output  io_apb_PREADY,
+      input   io_apb_PWRITE,
+      input  [31:0] io_apb_PWDATA,
+      output reg [31:0] io_apb_PRDATA,
+      output  io_uart_txd,
+      input   io_uart_rxd,
+      output  io_interrupt,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  wire  _zz_5_;
+  reg  _zz_6_;
+  wire  _zz_7_;
+  wire  uartCtrl_1__io_write_ready;
+  wire  uartCtrl_1__io_read_valid;
+  wire [7:0] uartCtrl_1__io_read_payload;
+  wire  uartCtrl_1__io_uart_txd;
+  wire  bridge_write_streamUnbuffered_queueWithOccupancy_io_push_ready;
+  wire  bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_valid;
+  wire [7:0] bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_payload;
+  wire [4:0] bridge_write_streamUnbuffered_queueWithOccupancy_io_occupancy;
+  wire [4:0] bridge_write_streamUnbuffered_queueWithOccupancy_io_availability;
+  wire  uartCtrl_1__io_read_queueWithOccupancy_io_push_ready;
+  wire  uartCtrl_1__io_read_queueWithOccupancy_io_pop_valid;
+  wire [7:0] uartCtrl_1__io_read_queueWithOccupancy_io_pop_payload;
+  wire [4:0] uartCtrl_1__io_read_queueWithOccupancy_io_occupancy;
+  wire [4:0] uartCtrl_1__io_read_queueWithOccupancy_io_availability;
+  wire [19:0] _zz_8_;
+  wire [19:0] _zz_9_;
+  wire [0:0] _zz_10_;
+  wire [0:0] _zz_11_;
+  wire [4:0] _zz_12_;
+  wire  busCtrl_askWrite;
+  wire  busCtrl_askRead;
+  wire  busCtrl_doWrite;
+  wire  busCtrl_doRead;
+  reg [2:0] bridge_uartConfigReg_frame_dataLength;
+  reg `UartStopType_defaultEncoding_type bridge_uartConfigReg_frame_stop;
+  reg `UartParityType_defaultEncoding_type bridge_uartConfigReg_frame_parity;
+  reg [19:0] bridge_uartConfigReg_clockDivider;
+  reg  _zz_1_;
+  wire  bridge_write_streamUnbuffered_valid;
+  wire  bridge_write_streamUnbuffered_ready;
+  wire [7:0] bridge_write_streamUnbuffered_payload;
+  reg  bridge_interruptCtrl_writeIntEnable;
+  reg  bridge_interruptCtrl_readIntEnable;
+  wire  bridge_interruptCtrl_readInt;
+  wire  bridge_interruptCtrl_writeInt;
+  wire  bridge_interruptCtrl_interrupt;
+  wire [7:0] _zz_2_;
+  wire `UartParityType_defaultEncoding_type _zz_3_;
+  wire `UartStopType_defaultEncoding_type _zz_4_;
+  `ifndef SYNTHESIS
+  reg [23:0] bridge_uartConfigReg_frame_stop_string;
+  reg [31:0] bridge_uartConfigReg_frame_parity_string;
+  reg [31:0] _zz_3__string;
+  reg [23:0] _zz_4__string;
+  `endif
+
+  assign _zz_8_ = io_apb_PWDATA[19 : 0];
+  assign _zz_9_ = _zz_8_;
+  assign _zz_10_ = io_apb_PWDATA[0 : 0];
+  assign _zz_11_ = io_apb_PWDATA[1 : 1];
+  assign _zz_12_ = ((5'b10000) - bridge_write_streamUnbuffered_queueWithOccupancy_io_occupancy);
+  UartCtrl uartCtrl_1_ ( 
+    .io_config_frame_dataLength(bridge_uartConfigReg_frame_dataLength),
+    .io_config_frame_stop(bridge_uartConfigReg_frame_stop),
+    .io_config_frame_parity(bridge_uartConfigReg_frame_parity),
+    .io_config_clockDivider(bridge_uartConfigReg_clockDivider),
+    .io_write_valid(bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_valid),
+    .io_write_ready(uartCtrl_1__io_write_ready),
+    .io_write_payload(bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_payload),
+    .io_read_valid(uartCtrl_1__io_read_valid),
+    .io_read_payload(uartCtrl_1__io_read_payload),
+    .io_uart_txd(uartCtrl_1__io_uart_txd),
+    .io_uart_rxd(io_uart_rxd),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  StreamFifo bridge_write_streamUnbuffered_queueWithOccupancy ( 
+    .io_push_valid(bridge_write_streamUnbuffered_valid),
+    .io_push_ready(bridge_write_streamUnbuffered_queueWithOccupancy_io_push_ready),
+    .io_push_payload(bridge_write_streamUnbuffered_payload),
+    .io_pop_valid(bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_valid),
+    .io_pop_ready(uartCtrl_1__io_write_ready),
+    .io_pop_payload(bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_payload),
+    .io_flush(_zz_5_),
+    .io_occupancy(bridge_write_streamUnbuffered_queueWithOccupancy_io_occupancy),
+    .io_availability(bridge_write_streamUnbuffered_queueWithOccupancy_io_availability),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  StreamFifo uartCtrl_1__io_read_queueWithOccupancy ( 
+    .io_push_valid(uartCtrl_1__io_read_valid),
+    .io_push_ready(uartCtrl_1__io_read_queueWithOccupancy_io_push_ready),
+    .io_push_payload(uartCtrl_1__io_read_payload),
+    .io_pop_valid(uartCtrl_1__io_read_queueWithOccupancy_io_pop_valid),
+    .io_pop_ready(_zz_6_),
+    .io_pop_payload(uartCtrl_1__io_read_queueWithOccupancy_io_pop_payload),
+    .io_flush(_zz_7_),
+    .io_occupancy(uartCtrl_1__io_read_queueWithOccupancy_io_occupancy),
+    .io_availability(uartCtrl_1__io_read_queueWithOccupancy_io_availability),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  `ifndef SYNTHESIS
+  always @(*) begin
+    case(bridge_uartConfigReg_frame_stop)
+      `UartStopType_defaultEncoding_ONE : bridge_uartConfigReg_frame_stop_string = "ONE";
+      `UartStopType_defaultEncoding_TWO : bridge_uartConfigReg_frame_stop_string = "TWO";
+      default : bridge_uartConfigReg_frame_stop_string = "???";
+    endcase
+  end
+  always @(*) begin
+    case(bridge_uartConfigReg_frame_parity)
+      `UartParityType_defaultEncoding_NONE : bridge_uartConfigReg_frame_parity_string = "NONE";
+      `UartParityType_defaultEncoding_EVEN : bridge_uartConfigReg_frame_parity_string = "EVEN";
+      `UartParityType_defaultEncoding_ODD : bridge_uartConfigReg_frame_parity_string = "ODD ";
+      default : bridge_uartConfigReg_frame_parity_string = "????";
+    endcase
+  end
+  always @(*) begin
+    case(_zz_3_)
+      `UartParityType_defaultEncoding_NONE : _zz_3__string = "NONE";
+      `UartParityType_defaultEncoding_EVEN : _zz_3__string = "EVEN";
+      `UartParityType_defaultEncoding_ODD : _zz_3__string = "ODD ";
+      default : _zz_3__string = "????";
+    endcase
+  end
+  always @(*) begin
+    case(_zz_4_)
+      `UartStopType_defaultEncoding_ONE : _zz_4__string = "ONE";
+      `UartStopType_defaultEncoding_TWO : _zz_4__string = "TWO";
+      default : _zz_4__string = "???";
+    endcase
+  end
+  `endif
+
+  assign io_uart_txd = uartCtrl_1__io_uart_txd;
+  assign io_apb_PREADY = 1'b1;
+  always @ (*) begin
+    io_apb_PRDATA = (32'b00000000000000000000000000000000);
+    case(io_apb_PADDR)
+      4'b1000 : begin
+      end
+      4'b1100 : begin
+      end
+      4'b0000 : begin
+        io_apb_PRDATA[16 : 16] = (uartCtrl_1__io_read_queueWithOccupancy_io_pop_valid ^ 1'b0);
+        io_apb_PRDATA[7 : 0] = uartCtrl_1__io_read_queueWithOccupancy_io_pop_payload;
+      end
+      4'b0100 : begin
+        io_apb_PRDATA[20 : 16] = _zz_12_;
+        io_apb_PRDATA[28 : 24] = uartCtrl_1__io_read_queueWithOccupancy_io_occupancy;
+        io_apb_PRDATA[0 : 0] = bridge_interruptCtrl_writeIntEnable;
+        io_apb_PRDATA[1 : 1] = bridge_interruptCtrl_readIntEnable;
+        io_apb_PRDATA[8 : 8] = bridge_interruptCtrl_writeInt;
+        io_apb_PRDATA[9 : 9] = bridge_interruptCtrl_readInt;
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign busCtrl_askWrite = ((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PWRITE);
+  assign busCtrl_askRead = ((io_apb_PSEL[0] && io_apb_PENABLE) && (! io_apb_PWRITE));
+  assign busCtrl_doWrite = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && io_apb_PWRITE);
+  assign busCtrl_doRead = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && (! io_apb_PWRITE));
+  always @ (*) begin
+    _zz_1_ = 1'b0;
+    case(io_apb_PADDR)
+      4'b1000 : begin
+      end
+      4'b1100 : begin
+      end
+      4'b0000 : begin
+        if(busCtrl_doWrite)begin
+          _zz_1_ = 1'b1;
+        end
+      end
+      4'b0100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign bridge_write_streamUnbuffered_valid = _zz_1_;
+  assign bridge_write_streamUnbuffered_payload = _zz_2_;
+  assign bridge_write_streamUnbuffered_ready = bridge_write_streamUnbuffered_queueWithOccupancy_io_push_ready;
+  always @ (*) begin
+    _zz_6_ = 1'b0;
+    case(io_apb_PADDR)
+      4'b1000 : begin
+      end
+      4'b1100 : begin
+      end
+      4'b0000 : begin
+        if(busCtrl_doRead)begin
+          _zz_6_ = 1'b1;
+        end
+      end
+      4'b0100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign bridge_interruptCtrl_readInt = (bridge_interruptCtrl_readIntEnable && uartCtrl_1__io_read_queueWithOccupancy_io_pop_valid);
+  assign bridge_interruptCtrl_writeInt = (bridge_interruptCtrl_writeIntEnable && (! bridge_write_streamUnbuffered_queueWithOccupancy_io_pop_valid));
+  assign bridge_interruptCtrl_interrupt = (bridge_interruptCtrl_readInt || bridge_interruptCtrl_writeInt);
+  assign io_interrupt = bridge_interruptCtrl_interrupt;
+  assign _zz_2_ = io_apb_PWDATA[7 : 0];
+  assign _zz_3_ = io_apb_PWDATA[9 : 8];
+  assign _zz_4_ = io_apb_PWDATA[16 : 16];
+  assign _zz_5_ = 1'b0;
+  assign _zz_7_ = 1'b0;
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      bridge_uartConfigReg_clockDivider <= (20'b00000000000000000000);
+      bridge_interruptCtrl_writeIntEnable <= 1'b0;
+      bridge_interruptCtrl_readIntEnable <= 1'b0;
+    end else begin
+      case(io_apb_PADDR)
+        4'b1000 : begin
+          if(busCtrl_doWrite)begin
+            bridge_uartConfigReg_clockDivider[19 : 0] <= _zz_9_;
+          end
+        end
+        4'b1100 : begin
+        end
+        4'b0000 : begin
+        end
+        4'b0100 : begin
+          if(busCtrl_doWrite)begin
+            bridge_interruptCtrl_writeIntEnable <= _zz_10_[0];
+            bridge_interruptCtrl_readIntEnable <= _zz_11_[0];
+          end
+        end
+        default : begin
+        end
+      endcase
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    case(io_apb_PADDR)
+      4'b1000 : begin
+      end
+      4'b1100 : begin
+        if(busCtrl_doWrite)begin
+          bridge_uartConfigReg_frame_dataLength <= io_apb_PWDATA[2 : 0];
+          bridge_uartConfigReg_frame_parity <= _zz_3_;
+          bridge_uartConfigReg_frame_stop <= _zz_4_;
+        end
+      end
+      4'b0000 : begin
+      end
+      4'b0100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+endmodule
+
+module Axi4VgaCtrl (
+      output  io_axi_ar_valid,
+      input   io_axi_ar_ready,
+      output [31:0] io_axi_ar_payload_addr,
+      output [7:0] io_axi_ar_payload_len,
+      output [2:0] io_axi_ar_payload_size,
+      output [3:0] io_axi_ar_payload_cache,
+      output [2:0] io_axi_ar_payload_prot,
+      input   io_axi_r_valid,
+      output  io_axi_r_ready,
+      input  [31:0] io_axi_r_payload_data,
+      input   io_axi_r_payload_last,
+      input  [7:0] io_apb_PADDR,
+      input  [0:0] io_apb_PSEL,
+      input   io_apb_PENABLE,
+      output  io_apb_PREADY,
+      input   io_apb_PWRITE,
+      input  [31:0] io_apb_PWDATA,
+      output reg [31:0] io_apb_PRDATA,
+      output  io_vga_vSync,
+      output  io_vga_hSync,
+      output  io_vga_colorEn,
+      output [4:0] io_vga_color_r,
+      output [5:0] io_vga_color_g,
+      output [4:0] io_vga_color_b,
+      input   io_axiClk,
+      input   resetCtrl_axiReset,
+      input   io_vgaClk,
+      input   resetCtrl_vgaReset);
+  wire  _zz_16_;
+  reg  _zz_17_;
+  wire  _zz_18_;
+  wire  _zz_19_;
+  wire  dma_io_busy;
+  wire  dma_io_mem_cmd_valid;
+  wire [26:0] dma_io_mem_cmd_payload;
+  wire  dma_io_frame_valid;
+  wire  dma_io_frame_payload_last;
+  wire [4:0] dma_io_frame_payload_fragment_r;
+  wire [5:0] dma_io_frame_payload_fragment_g;
+  wire [4:0] dma_io_frame_payload_fragment_b;
+  wire  bufferCC_13__io_dataOut;
+  wire  vga_ctrl_io_frameStart;
+  wire  vga_ctrl_io_pixels_ready;
+  wire  vga_ctrl_io_vga_vSync;
+  wire  vga_ctrl_io_vga_hSync;
+  wire  vga_ctrl_io_vga_colorEn;
+  wire [4:0] vga_ctrl_io_vga_color_r;
+  wire [5:0] vga_ctrl_io_vga_color_g;
+  wire [4:0] vga_ctrl_io_vga_color_b;
+  wire  vga_ctrl_io_error;
+  wire  pulseCCByToggle_1__io_pulseOut;
+  wire [0:0] _zz_20_;
+  wire  apbCtrl_askWrite;
+  wire  apbCtrl_askRead;
+  wire  apbCtrl_doWrite;
+  wire  apbCtrl_doRead;
+  reg  run;
+  reg [17:0] _zz_1_;
+  reg [26:0] _zz_2_;
+  wire  vga_run;
+  reg  vga_run_regNext;
+  reg  _zz_3_;
+  reg  _zz_4_;
+  reg  _zz_5_;
+  reg  _zz_6_;
+  wire  _zz_7_;
+  reg [11:0] _zz_8_;
+  reg [11:0] _zz_9_;
+  reg [11:0] _zz_10_;
+  reg [11:0] _zz_11_;
+  reg [11:0] _zz_12_;
+  reg [11:0] _zz_13_;
+  reg [11:0] _zz_14_;
+  reg [11:0] _zz_15_;
+  assign _zz_20_ = io_apb_PWDATA[0 : 0];
+  VideoDma dma ( 
+    .io_start(_zz_16_),
+    .io_busy(dma_io_busy),
+    .io_base(_zz_2_),
+    .io_size(_zz_1_),
+    .io_mem_cmd_valid(dma_io_mem_cmd_valid),
+    .io_mem_cmd_ready(io_axi_ar_ready),
+    .io_mem_cmd_payload(dma_io_mem_cmd_payload),
+    .io_mem_rsp_valid(io_axi_r_valid),
+    .io_mem_rsp_payload_last(io_axi_r_payload_last),
+    .io_mem_rsp_payload_fragment(io_axi_r_payload_data),
+    .io_frame_valid(dma_io_frame_valid),
+    .io_frame_ready(_zz_17_),
+    .io_frame_payload_last(dma_io_frame_payload_last),
+    .io_frame_payload_fragment_r(dma_io_frame_payload_fragment_r),
+    .io_frame_payload_fragment_g(dma_io_frame_payload_fragment_g),
+    .io_frame_payload_fragment_b(dma_io_frame_payload_fragment_b),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset),
+    .io_vgaClk(io_vgaClk),
+    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
+  );
+  BufferCC_9_ bufferCC_13_ ( 
+    .io_dataIn(run),
+    .io_dataOut(bufferCC_13__io_dataOut),
+    .io_vgaClk(io_vgaClk),
+    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
+  );
+  VgaCtrl vga_ctrl ( 
+    .io_softReset(_zz_18_),
+    .io_timings_h_colorStart(_zz_10_),
+    .io_timings_h_colorEnd(_zz_11_),
+    .io_timings_h_syncStart(_zz_8_),
+    .io_timings_h_syncEnd(_zz_9_),
+    .io_timings_v_colorStart(_zz_14_),
+    .io_timings_v_colorEnd(_zz_15_),
+    .io_timings_v_syncStart(_zz_12_),
+    .io_timings_v_syncEnd(_zz_13_),
+    .io_frameStart(vga_ctrl_io_frameStart),
+    .io_pixels_valid(_zz_19_),
+    .io_pixels_ready(vga_ctrl_io_pixels_ready),
+    .io_pixels_payload_r(dma_io_frame_payload_fragment_r),
+    .io_pixels_payload_g(dma_io_frame_payload_fragment_g),
+    .io_pixels_payload_b(dma_io_frame_payload_fragment_b),
+    .io_vga_vSync(vga_ctrl_io_vga_vSync),
+    .io_vga_hSync(vga_ctrl_io_vga_hSync),
+    .io_vga_colorEn(vga_ctrl_io_vga_colorEn),
+    .io_vga_color_r(vga_ctrl_io_vga_color_r),
+    .io_vga_color_g(vga_ctrl_io_vga_color_g),
+    .io_vga_color_b(vga_ctrl_io_vga_color_b),
+    .io_error(vga_ctrl_io_error),
+    .io_vgaClk(io_vgaClk),
+    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
+  );
+  PulseCCByToggle pulseCCByToggle_1_ ( 
+    .io_pulseIn(vga_ctrl_io_frameStart),
+    .io_pulseOut(pulseCCByToggle_1__io_pulseOut),
+    .io_vgaClk(io_vgaClk),
+    .resetCtrl_vgaReset(resetCtrl_vgaReset),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  assign io_apb_PREADY = 1'b1;
+  always @ (*) begin
+    io_apb_PRDATA = (32'b00000000000000000000000000000000);
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+        io_apb_PRDATA[0 : 0] = run;
+        io_apb_PRDATA[1 : 1] = dma_io_busy;
+      end
+      8'b00000100 : begin
+      end
+      8'b00001000 : begin
+      end
+      8'b01000000 : begin
+      end
+      8'b01000100 : begin
+      end
+      8'b01001000 : begin
+      end
+      8'b01001100 : begin
+      end
+      8'b01010000 : begin
+      end
+      8'b01010100 : begin
+      end
+      8'b01011000 : begin
+      end
+      8'b01011100 : begin
+      end
+      default : begin
+      end
+    endcase
+  end
+
+  assign apbCtrl_askWrite = ((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PWRITE);
+  assign apbCtrl_askRead = ((io_apb_PSEL[0] && io_apb_PENABLE) && (! io_apb_PWRITE));
+  assign apbCtrl_doWrite = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && io_apb_PWRITE);
+  assign apbCtrl_doRead = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && (! io_apb_PWRITE));
+  assign io_axi_ar_valid = dma_io_mem_cmd_valid;
+  assign io_axi_ar_payload_addr = ({5'd0,dma_io_mem_cmd_payload} <<< 5);
+  assign io_axi_ar_payload_len = (8'b00000111);
+  assign io_axi_ar_payload_size = (3'b010);
+  assign io_axi_ar_payload_cache = (4'b1111);
+  assign io_axi_ar_payload_prot = (3'b010);
+  assign io_axi_r_ready = 1'b1;
+  assign vga_run = bufferCC_13__io_dataOut;
+  always @ (*) begin
+    _zz_17_ = _zz_5_;
+    if((! vga_run))begin
+      _zz_17_ = 1'b1;
+    end
+  end
+
+  always @ (*) begin
+    _zz_6_ = dma_io_frame_valid;
+    if(_zz_3_)begin
+      _zz_6_ = 1'b0;
+    end
+  end
+
+  always @ (*) begin
+    _zz_5_ = (vga_ctrl_io_pixels_ready && _zz_7_);
+    if(_zz_3_)begin
+      _zz_5_ = 1'b1;
+    end
+  end
+
+  assign _zz_7_ = (! _zz_4_);
+  assign _zz_19_ = (_zz_6_ && _zz_7_);
+  assign _zz_18_ = (! vga_run);
+  assign io_vga_vSync = vga_ctrl_io_vga_vSync;
+  assign io_vga_hSync = vga_ctrl_io_vga_hSync;
+  assign io_vga_colorEn = vga_ctrl_io_vga_colorEn;
+  assign io_vga_color_r = vga_ctrl_io_vga_color_r;
+  assign io_vga_color_g = vga_ctrl_io_vga_color_g;
+  assign io_vga_color_b = vga_ctrl_io_vga_color_b;
+  assign _zz_16_ = (pulseCCByToggle_1__io_pulseOut && run);
+  always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
+    if (resetCtrl_axiReset) begin
+      run <= 1'b0;
+    end else begin
+      case(io_apb_PADDR)
+        8'b00000000 : begin
+          if(apbCtrl_doWrite)begin
+            run <= _zz_20_[0];
+          end
+        end
+        8'b00000100 : begin
+        end
+        8'b00001000 : begin
+        end
+        8'b01000000 : begin
+        end
+        8'b01000100 : begin
+        end
+        8'b01001000 : begin
+        end
+        8'b01001100 : begin
+        end
+        8'b01010000 : begin
+        end
+        8'b01010100 : begin
+        end
+        8'b01011000 : begin
+        end
+        8'b01011100 : begin
+        end
+        default : begin
+        end
+      endcase
+    end
+  end
+
+  always @ (posedge io_vgaClk) begin
+    vga_run_regNext <= vga_run;
+  end
+
+  always @ (posedge io_vgaClk or posedge resetCtrl_vgaReset) begin
+    if (resetCtrl_vgaReset) begin
+      _zz_3_ <= 1'b0;
+      _zz_4_ <= 1'b0;
+    end else begin
+      if(vga_ctrl_io_frameStart)begin
+        _zz_4_ <= 1'b0;
+      end
+      if(((dma_io_frame_valid && _zz_17_) && dma_io_frame_payload_last))begin
+        _zz_3_ <= 1'b0;
+        _zz_4_ <= _zz_3_;
+      end
+      if(((! _zz_4_) && (! _zz_3_)))begin
+        if((vga_ctrl_io_error || (vga_run && (! vga_run_regNext))))begin
+          _zz_3_ <= 1'b1;
+        end
+      end
+    end
+  end
+
+  always @ (posedge io_axiClk) begin
+    case(io_apb_PADDR)
+      8'b00000000 : begin
+      end
+      8'b00000100 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_1_ <= io_apb_PWDATA[22 : 5];
+        end
+      end
+      8'b00001000 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_2_ <= io_apb_PWDATA[31 : 5];
+        end
+      end
+      8'b01000000 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_8_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01000100 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_9_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01001000 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_10_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01001100 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_11_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01010000 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_12_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01010100 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_13_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01011000 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_14_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      8'b01011100 : begin
+        if(apbCtrl_doWrite)begin
+          _zz_15_ <= io_apb_PWDATA[11 : 0];
+        end
+      end
+      default : begin
+      end
+    endcase
+  end
+
+endmodule
+
+module Axi4SharedSecurityCtrl (
+      input   io_axi_arw_valid,
+      output reg  io_axi_arw_ready,
+      input  [26:0] io_axi_arw_payload_addr,
+      input  [3:0] io_axi_arw_payload_id,
+      input  [7:0] io_axi_arw_payload_len,
+      input  [2:0] io_axi_arw_payload_size,
+      input  [1:0] io_axi_arw_payload_burst,
+      input   io_axi_arw_payload_write,
+      input   io_axi_w_valid,
+      output reg  io_axi_w_ready,
+      input  [31:0] io_axi_w_payload_data,
+      input  [3:0] io_axi_w_payload_strb,
+      input   io_axi_w_payload_last,
+      output reg  io_axi_b_valid,
+      input   io_axi_b_ready,
+      output reg [3:0] io_axi_b_payload_id,
+      output reg [1:0] io_axi_b_payload_resp,
+      output reg  io_axi_r_valid,
+      input   io_axi_r_ready,
+      output reg [31:0] io_axi_r_payload_data,
+      output reg [3:0] io_axi_r_payload_id,
+      output reg [1:0] io_axi_r_payload_resp,
+      output reg  io_axi_r_payload_last,
+      output reg  io_sdramAxi_arw_valid,
+      input   io_sdramAxi_arw_ready,
+      output reg [26:0] io_sdramAxi_arw_payload_addr,
+      output reg [3:0] io_sdramAxi_arw_payload_id,
+      output reg [7:0] io_sdramAxi_arw_payload_len,
+      output reg [2:0] io_sdramAxi_arw_payload_size,
+      output reg [1:0] io_sdramAxi_arw_payload_burst,
+      output reg  io_sdramAxi_arw_payload_write,
+      output reg  io_sdramAxi_w_valid,
+      input   io_sdramAxi_w_ready,
+      output reg [31:0] io_sdramAxi_w_payload_data,
+      output reg [3:0] io_sdramAxi_w_payload_strb,
+      output reg  io_sdramAxi_w_payload_last,
+      input   io_sdramAxi_b_valid,
+      output reg  io_sdramAxi_b_ready,
+      input  [3:0] io_sdramAxi_b_payload_id,
+      input  [1:0] io_sdramAxi_b_payload_resp,
+      input   io_sdramAxi_r_valid,
+      output reg  io_sdramAxi_r_ready,
+      input  [31:0] io_sdramAxi_r_payload_data,
+      input  [3:0] io_sdramAxi_r_payload_id,
+      input  [1:0] io_sdramAxi_r_payload_resp,
+      input   io_sdramAxi_r_payload_last,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
   reg  _zz_13_;
   reg  _zz_14_;
   reg [31:0] _zz_15_;
@@ -7476,7 +9642,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -7682,7 +9848,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -7821,7 +9987,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -7851,8 +10017,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign _zz_12_ = (((timerABridge_clearsEnable & timerA_io_full) != (1'b0)) || timerABridge_busClearing);
-  assign _zz_11_ = ((timerABridge_ticksEnable & {prescaler_1__io_overflow,1'b1}) != (2'b00));
   always @ (*) begin
     _zz_22_ = (32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx);
     case(fsm_stateReg)
@@ -7873,7 +10037,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -7925,10 +10089,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
-        if(busCtrl_doWrite)begin
-          _zz_6_ = 1'b1;
-        end
+      default : begin
       end
     endcase
   end
@@ -7959,8 +10120,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign _zz_14_ = (((timerBBridge_clearsEnable & {external_clear,timerB_io_full}) != (2'b00)) || timerBBridge_busClearing);
-  assign _zz_13_ = ((timerBBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
   always @ (*) begin
     _zz_32_ = 1'b0;
     case(fsm_stateReg)
@@ -7982,7 +10141,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8041,7 +10200,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8075,8 +10234,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign _zz_16_ = (((timerCBridge_clearsEnable & {external_clear,timerC_io_full}) != (2'b00)) || timerCBridge_busClearing);
-  assign _zz_15_ = ((timerCBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
   always @ (*) begin
     _zz_28_ = 1'b0;
     case(fsm_stateReg)
@@ -8097,7 +10254,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8157,7 +10314,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8190,8 +10347,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign _zz_18_ = (((timerDBridge_clearsEnable & {external_clear,timerD_io_full}) != (2'b00)) || timerDBridge_busClearing);
-  assign _zz_17_ = ((timerDBridge_ticksEnable & {external_tick,{prescaler_1__io_overflow,1'b1}}) != (3'b000));
   always @ (*) begin
     io_sdramAxi_w_payload_strb = (4'b1111);
     case(fsm_stateReg)
@@ -8215,7 +10370,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8271,7 +10426,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      8'b01011000 : begin
+      default : begin
       end
     endcase
   end
@@ -8407,10 +10562,7 @@ module PinsecTimerCtrl (
       end
     endcase
   end
-  `endif
 
-  assign io_uart_txd = uartCtrl_1__io_uart_txd;
-  assign io_apb_PREADY = 1'b1;
   always @ (*) begin
     io_sdramAxi_arw_payload_write = sdramWrEnReg;
     case(fsm_stateReg)
@@ -8438,10 +10590,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign busCtrl_askWrite = ((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PWRITE);
-  assign busCtrl_askRead = ((io_apb_PSEL[0] && io_apb_PENABLE) && (! io_apb_PWRITE));
-  assign busCtrl_doWrite = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && io_apb_PWRITE);
-  assign busCtrl_doRead = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && (! io_apb_PWRITE));
   always @ (*) begin
     io_sdramAxi_arw_valid = sdramAxiSharedCmdValidReg;
     case(fsm_stateReg)
@@ -8464,7 +10612,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      4'b1100 : begin
+      default : begin
       end
     endcase
   end
@@ -8496,9 +10644,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-  assign bridge_write_streamUnbuffered_valid = _zz_1_;
-  assign bridge_write_streamUnbuffered_payload = _zz_2_;
-  assign bridge_write_streamUnbuffered_ready = bridge_write_streamUnbuffered_queueWithOccupancy_io_push_ready;
   always @ (*) begin
     io_axi_arw_ready = (io_axi_arw_valid && (! busyReg));
     case(fsm_stateReg)
@@ -8521,7 +10666,7 @@ module PinsecTimerCtrl (
       end
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
       end
-      4'b1100 : begin
+      default : begin
       end
     endcase
   end
@@ -8718,147 +10863,6 @@ module PinsecTimerCtrl (
     endcase
   end
 
-endmodule
-
-module Axi4VgaCtrl (
-      output  io_axi_ar_valid,
-      input   io_axi_ar_ready,
-      output [31:0] io_axi_ar_payload_addr,
-      output [7:0] io_axi_ar_payload_len,
-      output [2:0] io_axi_ar_payload_size,
-      output [3:0] io_axi_ar_payload_cache,
-      output [2:0] io_axi_ar_payload_prot,
-      input   io_axi_r_valid,
-      output  io_axi_r_ready,
-      input  [31:0] io_axi_r_payload_data,
-      input   io_axi_r_payload_last,
-      input  [7:0] io_apb_PADDR,
-      input  [0:0] io_apb_PSEL,
-      input   io_apb_PENABLE,
-      output  io_apb_PREADY,
-      input   io_apb_PWRITE,
-      input  [31:0] io_apb_PWDATA,
-      output reg [31:0] io_apb_PRDATA,
-      output  io_vga_vSync,
-      output  io_vga_hSync,
-      output  io_vga_colorEn,
-      output [4:0] io_vga_color_r,
-      output [5:0] io_vga_color_g,
-      output [4:0] io_vga_color_b,
-      input   io_axiClk,
-      input   resetCtrl_axiReset,
-      input   io_vgaClk,
-      input   resetCtrl_vgaReset);
-  wire  _zz_16_;
-  reg  _zz_17_;
-  wire  _zz_18_;
-  wire  _zz_19_;
-  wire  dma_io_busy;
-  wire  dma_io_mem_cmd_valid;
-  wire [26:0] dma_io_mem_cmd_payload;
-  wire  dma_io_frame_valid;
-  wire  dma_io_frame_payload_last;
-  wire [4:0] dma_io_frame_payload_fragment_r;
-  wire [5:0] dma_io_frame_payload_fragment_g;
-  wire [4:0] dma_io_frame_payload_fragment_b;
-  wire  bufferCC_13__io_dataOut;
-  wire  vga_ctrl_io_frameStart;
-  wire  vga_ctrl_io_pixels_ready;
-  wire  vga_ctrl_io_vga_vSync;
-  wire  vga_ctrl_io_vga_hSync;
-  wire  vga_ctrl_io_vga_colorEn;
-  wire [4:0] vga_ctrl_io_vga_color_r;
-  wire [5:0] vga_ctrl_io_vga_color_g;
-  wire [4:0] vga_ctrl_io_vga_color_b;
-  wire  vga_ctrl_io_error;
-  wire  pulseCCByToggle_1__io_pulseOut;
-  wire [0:0] _zz_20_;
-  wire  apbCtrl_askWrite;
-  wire  apbCtrl_askRead;
-  wire  apbCtrl_doWrite;
-  wire  apbCtrl_doRead;
-  reg  run;
-  reg [17:0] _zz_1_;
-  reg [26:0] _zz_2_;
-  wire  vga_run;
-  reg  vga_run_regNext;
-  reg  _zz_3_;
-  reg  _zz_4_;
-  reg  _zz_5_;
-  reg  _zz_6_;
-  wire  _zz_7_;
-  reg [11:0] _zz_8_;
-  reg [11:0] _zz_9_;
-  reg [11:0] _zz_10_;
-  reg [11:0] _zz_11_;
-  reg [11:0] _zz_12_;
-  reg [11:0] _zz_13_;
-  reg [11:0] _zz_14_;
-  reg [11:0] _zz_15_;
-  assign _zz_20_ = io_apb_PWDATA[0 : 0];
-  VideoDma dma ( 
-    .io_start(_zz_16_),
-    .io_busy(dma_io_busy),
-    .io_base(_zz_2_),
-    .io_size(_zz_1_),
-    .io_mem_cmd_valid(dma_io_mem_cmd_valid),
-    .io_mem_cmd_ready(io_axi_ar_ready),
-    .io_mem_cmd_payload(dma_io_mem_cmd_payload),
-    .io_mem_rsp_valid(io_axi_r_valid),
-    .io_mem_rsp_payload_last(io_axi_r_payload_last),
-    .io_mem_rsp_payload_fragment(io_axi_r_payload_data),
-    .io_frame_valid(dma_io_frame_valid),
-    .io_frame_ready(_zz_17_),
-    .io_frame_payload_last(dma_io_frame_payload_last),
-    .io_frame_payload_fragment_r(dma_io_frame_payload_fragment_r),
-    .io_frame_payload_fragment_g(dma_io_frame_payload_fragment_g),
-    .io_frame_payload_fragment_b(dma_io_frame_payload_fragment_b),
-    .io_axiClk(io_axiClk),
-    .resetCtrl_axiReset(resetCtrl_axiReset),
-    .io_vgaClk(io_vgaClk),
-    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
-  );
-  BufferCC_9_ bufferCC_13_ ( 
-    .io_dataIn(run),
-    .io_dataOut(bufferCC_13__io_dataOut),
-    .io_vgaClk(io_vgaClk),
-    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
-  );
-  VgaCtrl vga_ctrl ( 
-    .io_softReset(_zz_18_),
-    .io_timings_h_colorStart(_zz_10_),
-    .io_timings_h_colorEnd(_zz_11_),
-    .io_timings_h_syncStart(_zz_8_),
-    .io_timings_h_syncEnd(_zz_9_),
-    .io_timings_v_colorStart(_zz_14_),
-    .io_timings_v_colorEnd(_zz_15_),
-    .io_timings_v_syncStart(_zz_12_),
-    .io_timings_v_syncEnd(_zz_13_),
-    .io_frameStart(vga_ctrl_io_frameStart),
-    .io_pixels_valid(_zz_19_),
-    .io_pixels_ready(vga_ctrl_io_pixels_ready),
-    .io_pixels_payload_r(dma_io_frame_payload_fragment_r),
-    .io_pixels_payload_g(dma_io_frame_payload_fragment_g),
-    .io_pixels_payload_b(dma_io_frame_payload_fragment_b),
-    .io_vga_vSync(vga_ctrl_io_vga_vSync),
-    .io_vga_hSync(vga_ctrl_io_vga_hSync),
-    .io_vga_colorEn(vga_ctrl_io_vga_colorEn),
-    .io_vga_color_r(vga_ctrl_io_vga_color_r),
-    .io_vga_color_g(vga_ctrl_io_vga_color_g),
-    .io_vga_color_b(vga_ctrl_io_vga_color_b),
-    .io_error(vga_ctrl_io_error),
-    .io_vgaClk(io_vgaClk),
-    .resetCtrl_vgaReset(resetCtrl_vgaReset) 
-  );
-  PulseCCByToggle pulseCCByToggle_1_ ( 
-    .io_pulseIn(vga_ctrl_io_frameStart),
-    .io_pulseOut(pulseCCByToggle_1__io_pulseOut),
-    .io_vgaClk(io_vgaClk),
-    .resetCtrl_vgaReset(resetCtrl_vgaReset),
-    .io_axiClk(io_axiClk),
-    .resetCtrl_axiReset(resetCtrl_axiReset) 
-  );
-  assign io_apb_PREADY = 1'b1;
   always @ (*) begin
     io_axi_r_payload_id = io_sdramAxi_r_payload_id;
     case(fsm_stateReg)
@@ -8882,7 +10886,7 @@ module Axi4VgaCtrl (
       `fsm_enumDefinition_defaultEncoding_fsm_returnDataState : begin
         io_axi_r_payload_id = axiSharedCmdReg_payload_id;
       end
-      8'b00001000 : begin
+      default : begin
       end
     endcase
   end
@@ -8915,18 +10919,6 @@ module Axi4VgaCtrl (
     endcase
   end
 
-  assign apbCtrl_askWrite = ((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PWRITE);
-  assign apbCtrl_askRead = ((io_apb_PSEL[0] && io_apb_PENABLE) && (! io_apb_PWRITE));
-  assign apbCtrl_doWrite = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && io_apb_PWRITE);
-  assign apbCtrl_doRead = (((io_apb_PSEL[0] && io_apb_PENABLE) && io_apb_PREADY) && (! io_apb_PWRITE));
-  assign io_axi_ar_valid = dma_io_mem_cmd_valid;
-  assign io_axi_ar_payload_addr = ({5'd0,dma_io_mem_cmd_payload} <<< 5);
-  assign io_axi_ar_payload_len = (8'b00000111);
-  assign io_axi_ar_payload_size = (3'b010);
-  assign io_axi_ar_payload_cache = (4'b1111);
-  assign io_axi_ar_payload_prot = (3'b010);
-  assign io_axi_r_ready = 1'b1;
-  assign vga_run = bufferCC_13__io_dataOut;
   always @ (*) begin
     io_sdramAxi_r_ready = dataInFifo_io_push_ready;
     case(fsm_stateReg)
@@ -9719,11 +11711,11 @@ module VexRiscv (
   wire  _zz_229_;
   wire  _zz_230_;
   wire  _zz_231_;
-  wire [1:0] _zz_232_;
-  wire  _zz_233_;
+  wire  _zz_232_;
+  wire [1:0] _zz_233_;
   wire  _zz_234_;
-  wire [1:0] _zz_235_;
-  wire  _zz_236_;
+  wire  _zz_235_;
+  wire [1:0] _zz_236_;
   wire  _zz_237_;
   wire  _zz_238_;
   wire  _zz_239_;
@@ -9982,7 +11974,7 @@ module VexRiscv (
   wire [6:0] _zz_492_;
   wire [31:0] _zz_493_;
   wire [31:0] _zz_494_;
-  wire  _zz_495_;
+  wire [31:0] _zz_495_;
   wire  _zz_496_;
   wire [0:0] _zz_497_;
   wire [0:0] _zz_498_;
@@ -10169,10 +12161,10 @@ module VexRiscv (
   wire `ShiftCtrlEnum_defaultEncoding_type _zz_72_;
   wire  _zz_73_;
   wire  _zz_74_;
-  wire `Src1CtrlEnum_defaultEncoding_type _zz_75_;
+  wire  _zz_75_;
   wire  _zz_76_;
   wire  _zz_77_;
-  wire `ShiftCtrlEnum_defaultEncoding_type _zz_78_;
+  wire `EnvCtrlEnum_defaultEncoding_type _zz_78_;
   wire  _zz_79_;
   wire `AluBitwiseCtrlEnum_defaultEncoding_type _zz_80_;
   wire  _zz_81_;
@@ -10505,7 +12497,6 @@ module VexRiscv (
   reg [32:0] memory_DivPlugin_rs1;
   reg [31:0] memory_DivPlugin_rs2;
   reg [64:0] memory_DivPlugin_accumulator;
-  wire  memory_DivPlugin_frontendOk;
   reg  memory_DivPlugin_div_needRevert;
   reg  memory_DivPlugin_div_counter_willIncrement;
   reg  memory_DivPlugin_div_counter_willClear;
@@ -10791,14 +12782,14 @@ module VexRiscv (
   assign _zz_226_ = ({decodeExceptionPort_valid,IBusCachedPlugin_decodeExceptionPort_valid} != (2'b00));
   assign _zz_227_ = (execute_arbitration_isValid && execute_DO_EBREAK);
   assign _zz_228_ = (({writeBack_arbitration_isValid,memory_arbitration_isValid} != (2'b00)) == 1'b0);
-  assign _zz_229_ = (CsrPlugin_hadException || CsrPlugin_interruptJump);
-  assign _zz_230_ = (writeBack_arbitration_isValid && (writeBack_ENV_CTRL == `EnvCtrlEnum_defaultEncoding_XRET));
-  assign _zz_231_ = (DebugPlugin_stepIt && IBusCachedPlugin_incomingInstruction);
-  assign _zz_232_ = writeBack_INSTRUCTION[29 : 28];
-  assign _zz_233_ = (! IBusCachedPlugin_iBusRsp_readyForError);
-  assign _zz_234_ = (writeBack_arbitration_isValid && writeBack_MEMORY_ENABLE);
-  assign _zz_235_ = execute_INSTRUCTION[13 : 12];
-  assign _zz_236_ = (memory_DivPlugin_frontendOk && (! memory_DivPlugin_div_done));
+  assign _zz_229_ = (! memory_DivPlugin_div_done);
+  assign _zz_230_ = (CsrPlugin_hadException || CsrPlugin_interruptJump);
+  assign _zz_231_ = (writeBack_arbitration_isValid && (writeBack_ENV_CTRL == `EnvCtrlEnum_defaultEncoding_XRET));
+  assign _zz_232_ = (DebugPlugin_stepIt && IBusCachedPlugin_incomingInstruction);
+  assign _zz_233_ = writeBack_INSTRUCTION[29 : 28];
+  assign _zz_234_ = (! IBusCachedPlugin_iBusRsp_readyForError);
+  assign _zz_235_ = (writeBack_arbitration_isValid && writeBack_MEMORY_ENABLE);
+  assign _zz_236_ = execute_INSTRUCTION[13 : 12];
   assign _zz_237_ = (! memory_arbitration_isStuck);
   assign _zz_238_ = (writeBack_arbitration_isValid && writeBack_REGFILE_WRITE_VALID);
   assign _zz_239_ = (1'b0 || (! 1'b1));
@@ -11397,24 +13388,6 @@ module VexRiscv (
     endcase
   end
   always @(*) begin
-    case(_zz_17_)
-      `Src1CtrlEnum_defaultEncoding_RS : _zz_17__string = "RS          ";
-      `Src1CtrlEnum_defaultEncoding_IMU : _zz_17__string = "IMU         ";
-      `Src1CtrlEnum_defaultEncoding_PC_INCREMENT : _zz_17__string = "PC_INCREMENT";
-      `Src1CtrlEnum_defaultEncoding_URS1 : _zz_17__string = "URS1        ";
-      default : _zz_17__string = "????????????";
-    endcase
-  end
-  always @(*) begin
-    case(_zz_18_)
-      `Src1CtrlEnum_defaultEncoding_RS : _zz_18__string = "RS          ";
-      `Src1CtrlEnum_defaultEncoding_IMU : _zz_18__string = "IMU         ";
-      `Src1CtrlEnum_defaultEncoding_PC_INCREMENT : _zz_18__string = "PC_INCREMENT";
-      `Src1CtrlEnum_defaultEncoding_URS1 : _zz_18__string = "URS1        ";
-      default : _zz_18__string = "????????????";
-    endcase
-  end
-  always @(*) begin
     case(_zz_19_)
       `EnvCtrlEnum_defaultEncoding_NONE : _zz_19__string = "NONE";
       `EnvCtrlEnum_defaultEncoding_XRET : _zz_19__string = "XRET";
@@ -11689,12 +13662,10 @@ module VexRiscv (
     endcase
   end
   always @(*) begin
-    case(_zz_69_)
-      `Src2CtrlEnum_defaultEncoding_RS : _zz_69__string = "RS ";
-      `Src2CtrlEnum_defaultEncoding_IMI : _zz_69__string = "IMI";
-      `Src2CtrlEnum_defaultEncoding_IMS : _zz_69__string = "IMS";
-      `Src2CtrlEnum_defaultEncoding_PC : _zz_69__string = "PC ";
-      default : _zz_69__string = "???";
+    case(_zz_78_)
+      `EnvCtrlEnum_defaultEncoding_NONE : _zz_78__string = "NONE";
+      `EnvCtrlEnum_defaultEncoding_XRET : _zz_78__string = "XRET";
+      default : _zz_78__string = "????";
     endcase
   end
   always @(*) begin
@@ -11769,11 +13740,9 @@ module VexRiscv (
   end
   always @(*) begin
     case(_zz_144_)
-      `Src2CtrlEnum_defaultEncoding_RS : _zz_144__string = "RS ";
-      `Src2CtrlEnum_defaultEncoding_IMI : _zz_144__string = "IMI";
-      `Src2CtrlEnum_defaultEncoding_IMS : _zz_144__string = "IMS";
-      `Src2CtrlEnum_defaultEncoding_PC : _zz_144__string = "PC ";
-      default : _zz_144__string = "???";
+      `EnvCtrlEnum_defaultEncoding_NONE : _zz_144__string = "NONE";
+      `EnvCtrlEnum_defaultEncoding_XRET : _zz_144__string = "XRET";
+      default : _zz_144__string = "????";
     endcase
   end
   always @(*) begin
@@ -11803,20 +13772,12 @@ module VexRiscv (
     endcase
   end
   always @(*) begin
-    case(_zz_146_)
-      `AluCtrlEnum_defaultEncoding_ADD_SUB : _zz_146__string = "ADD_SUB ";
-      `AluCtrlEnum_defaultEncoding_SLT_SLTU : _zz_146__string = "SLT_SLTU";
-      `AluCtrlEnum_defaultEncoding_BITWISE : _zz_146__string = "BITWISE ";
-      default : _zz_146__string = "????????";
-    endcase
-  end
-  always @(*) begin
-    case(decode_to_execute_BRANCH_CTRL)
-      `BranchCtrlEnum_defaultEncoding_INC : decode_to_execute_BRANCH_CTRL_string = "INC ";
-      `BranchCtrlEnum_defaultEncoding_B : decode_to_execute_BRANCH_CTRL_string = "B   ";
-      `BranchCtrlEnum_defaultEncoding_JAL : decode_to_execute_BRANCH_CTRL_string = "JAL ";
-      `BranchCtrlEnum_defaultEncoding_JALR : decode_to_execute_BRANCH_CTRL_string = "JALR";
-      default : decode_to_execute_BRANCH_CTRL_string = "????";
+    case(decode_to_execute_SRC1_CTRL)
+      `Src1CtrlEnum_defaultEncoding_RS : decode_to_execute_SRC1_CTRL_string = "RS          ";
+      `Src1CtrlEnum_defaultEncoding_IMU : decode_to_execute_SRC1_CTRL_string = "IMU         ";
+      `Src1CtrlEnum_defaultEncoding_PC_INCREMENT : decode_to_execute_SRC1_CTRL_string = "PC_INCREMENT";
+      `Src1CtrlEnum_defaultEncoding_URS1 : decode_to_execute_SRC1_CTRL_string = "URS1        ";
+      default : decode_to_execute_SRC1_CTRL_string = "????????????";
     endcase
   end
   always @(*) begin
@@ -11868,20 +13829,11 @@ module VexRiscv (
     endcase
   end
   always @(*) begin
-    case(decode_to_execute_SRC1_CTRL)
-      `Src1CtrlEnum_defaultEncoding_RS : decode_to_execute_SRC1_CTRL_string = "RS          ";
-      `Src1CtrlEnum_defaultEncoding_IMU : decode_to_execute_SRC1_CTRL_string = "IMU         ";
-      `Src1CtrlEnum_defaultEncoding_PC_INCREMENT : decode_to_execute_SRC1_CTRL_string = "PC_INCREMENT";
-      `Src1CtrlEnum_defaultEncoding_URS1 : decode_to_execute_SRC1_CTRL_string = "URS1        ";
-      default : decode_to_execute_SRC1_CTRL_string = "????????????";
-    endcase
-  end
-  always @(*) begin
-    case(decode_to_execute_ALU_BITWISE_CTRL)
-      `AluBitwiseCtrlEnum_defaultEncoding_XOR_1 : decode_to_execute_ALU_BITWISE_CTRL_string = "XOR_1";
-      `AluBitwiseCtrlEnum_defaultEncoding_OR_1 : decode_to_execute_ALU_BITWISE_CTRL_string = "OR_1 ";
-      `AluBitwiseCtrlEnum_defaultEncoding_AND_1 : decode_to_execute_ALU_BITWISE_CTRL_string = "AND_1";
-      default : decode_to_execute_ALU_BITWISE_CTRL_string = "?????";
+    case(decode_to_execute_ALU_CTRL)
+      `AluCtrlEnum_defaultEncoding_ADD_SUB : decode_to_execute_ALU_CTRL_string = "ADD_SUB ";
+      `AluCtrlEnum_defaultEncoding_SLT_SLTU : decode_to_execute_ALU_CTRL_string = "SLT_SLTU";
+      `AluCtrlEnum_defaultEncoding_BITWISE : decode_to_execute_ALU_CTRL_string = "BITWISE ";
+      default : decode_to_execute_ALU_CTRL_string = "????????";
     endcase
   end
   always @(*) begin
@@ -11957,7 +13909,7 @@ module VexRiscv (
   assign execute_BYPASSABLE_MEMORY_STAGE = decode_to_execute_BYPASSABLE_MEMORY_STAGE;
   assign decode_BYPASSABLE_MEMORY_STAGE = _zz_90_;
   assign execute_DO_EBREAK = decode_to_execute_DO_EBREAK;
-  assign decode_IS_EBREAK = _zz_82_;
+  assign decode_IS_EBREAK = _zz_68_;
   assign execute_CSR_READ_OPCODE = decode_to_execute_CSR_READ_OPCODE;
   assign execute_CSR_WRITE_OPCODE = decode_to_execute_CSR_WRITE_OPCODE;
   assign execute_IS_CSR = decode_to_execute_IS_CSR;
@@ -12308,7 +14260,7 @@ module VexRiscv (
   always @ (*) begin
     memory_arbitration_haltItself = 1'b0;
     if(_zz_221_)begin
-      if(((! memory_DivPlugin_frontendOk) || (! memory_DivPlugin_div_done)))begin
+      if(_zz_229_)begin
         memory_arbitration_haltItself = 1'b1;
       end
     end
@@ -12369,10 +14321,10 @@ module VexRiscv (
     if(DBusCachedPlugin_exceptionBus_valid)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
-    if(_zz_229_)begin
+    if(_zz_230_)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
-    if(_zz_230_)begin
+    if(_zz_231_)begin
       writeBack_arbitration_flushNext = 1'b1;
     end
   end
@@ -12386,10 +14338,10 @@ module VexRiscv (
     if(({CsrPlugin_exceptionPortCtrl_exceptionValids_writeBack,{CsrPlugin_exceptionPortCtrl_exceptionValids_memory,{CsrPlugin_exceptionPortCtrl_exceptionValids_execute,CsrPlugin_exceptionPortCtrl_exceptionValids_decode}}} != (4'b0000)))begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_229_)begin
+    if(_zz_230_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_230_)begin
+    if(_zz_231_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
     if(_zz_227_)begin
@@ -12400,7 +14352,7 @@ module VexRiscv (
     if(DebugPlugin_haltIt)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
-    if(_zz_231_)begin
+    if(_zz_232_)begin
       IBusCachedPlugin_fetcherHalt = 1'b1;
     end
   end
@@ -12436,21 +14388,21 @@ module VexRiscv (
 
   always @ (*) begin
     CsrPlugin_jumpInterface_valid = 1'b0;
-    if(_zz_229_)begin
+    if(_zz_230_)begin
       CsrPlugin_jumpInterface_valid = 1'b1;
     end
-    if(_zz_230_)begin
+    if(_zz_231_)begin
       CsrPlugin_jumpInterface_valid = 1'b1;
     end
   end
 
   always @ (*) begin
     CsrPlugin_jumpInterface_payload = (32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx);
-    if(_zz_229_)begin
+    if(_zz_230_)begin
       CsrPlugin_jumpInterface_payload = {CsrPlugin_xtvec_base,(2'b00)};
     end
-    if(_zz_230_)begin
-      case(_zz_232_)
+    if(_zz_231_)begin
+      case(_zz_233_)
         2'b11 : begin
           CsrPlugin_jumpInterface_payload = CsrPlugin_mepc;
         end
@@ -12678,7 +14630,7 @@ module VexRiscv (
     if(_zz_223_)begin
       IBusCachedPlugin_rsp_redoFetch = 1'b1;
     end
-    if(_zz_233_)begin
+    if(_zz_234_)begin
       IBusCachedPlugin_rsp_redoFetch = 1'b0;
     end
   end
@@ -12688,7 +14640,7 @@ module VexRiscv (
     if(_zz_223_)begin
       _zz_202_ = 1'b1;
     end
-    if(_zz_233_)begin
+    if(_zz_234_)begin
       _zz_202_ = 1'b0;
     end
   end
@@ -12769,7 +14721,7 @@ module VexRiscv (
   assign _zz_210_ = writeBack_REGFILE_WRITE_DATA;
   always @ (*) begin
     DBusCachedPlugin_redoBranch_valid = 1'b0;
-    if(_zz_234_)begin
+    if(_zz_235_)begin
       if(dataCache_1__io_cpu_redo)begin
         DBusCachedPlugin_redoBranch_valid = 1'b1;
       end
@@ -12779,7 +14731,7 @@ module VexRiscv (
   assign DBusCachedPlugin_redoBranch_payload = writeBack_PC;
   always @ (*) begin
     DBusCachedPlugin_exceptionBus_valid = 1'b0;
-    if(_zz_234_)begin
+    if(_zz_235_)begin
       if(dataCache_1__io_cpu_writeBack_accessError)begin
         DBusCachedPlugin_exceptionBus_valid = 1'b1;
       end
@@ -12798,7 +14750,7 @@ module VexRiscv (
   assign DBusCachedPlugin_exceptionBus_payload_badAddr = writeBack_REGFILE_WRITE_DATA;
   always @ (*) begin
     DBusCachedPlugin_exceptionBus_payload_code = (4'bxxxx);
-    if(_zz_234_)begin
+    if(_zz_235_)begin
       if(dataCache_1__io_cpu_writeBack_accessError)begin
         DBusCachedPlugin_exceptionBus_payload_code = {1'd0, _zz_269_};
       end
@@ -13165,7 +15117,7 @@ module VexRiscv (
   assign execute_MulPlugin_a = execute_SRC1;
   assign execute_MulPlugin_b = execute_SRC2;
   always @ (*) begin
-    case(_zz_235_)
+    case(_zz_236_)
       2'b01 : begin
         execute_MulPlugin_aSigned = 1'b1;
       end
@@ -13179,7 +15131,7 @@ module VexRiscv (
   end
 
   always @ (*) begin
-    case(_zz_235_)
+    case(_zz_236_)
       2'b01 : begin
         execute_MulPlugin_bSigned = 1'b1;
       end
@@ -13204,11 +15156,10 @@ module VexRiscv (
   assign _zz_41_ = ($signed(execute_MulPlugin_aHigh) * $signed(execute_MulPlugin_bHigh));
   assign _zz_40_ = ($signed(_zz_304_) + $signed(_zz_312_));
   assign writeBack_MulPlugin_result = ($signed(_zz_313_) + $signed(_zz_314_));
-  assign memory_DivPlugin_frontendOk = 1'b1;
   always @ (*) begin
     memory_DivPlugin_div_counter_willIncrement = 1'b0;
     if(_zz_221_)begin
-      if(_zz_236_)begin
+      if(_zz_229_)begin
         memory_DivPlugin_div_counter_willIncrement = 1'b1;
       end
     end
@@ -13908,7 +15859,7 @@ module VexRiscv (
         end
       end
       CsrPlugin_hadException <= CsrPlugin_exception;
-      if(_zz_229_)begin
+      if(_zz_230_)begin
         case(CsrPlugin_targetPrivilege)
           2'b11 : begin
             CsrPlugin_mstatus_MIE <= 1'b0;
@@ -13919,8 +15870,8 @@ module VexRiscv (
           end
         endcase
       end
-      if(_zz_230_)begin
-        case(_zz_232_)
+      if(_zz_231_)begin
+        case(_zz_233_)
           2'b11 : begin
             CsrPlugin_mstatus_MPP <= (2'b00);
             CsrPlugin_mstatus_MIE <= CsrPlugin_mstatus_MPIE;
@@ -14041,7 +15992,7 @@ module VexRiscv (
       memory_DivPlugin_div_done <= 1'b0;
     end
     if(_zz_221_)begin
-      if(_zz_236_)begin
+      if(_zz_229_)begin
         memory_DivPlugin_rs1[31 : 0] <= _zz_320_[31:0];
         memory_DivPlugin_accumulator[31 : 0] <= ((! _zz_159_[32]) ? _zz_321_ : _zz_322_);
         if((memory_DivPlugin_div_counter_value == (6'b100000)))begin
@@ -14092,7 +16043,7 @@ module VexRiscv (
         CsrPlugin_interrupt_targetPrivilege <= (2'b11);
       end
     end
-    if(_zz_229_)begin
+    if(_zz_230_)begin
       case(CsrPlugin_targetPrivilege)
         2'b11 : begin
           CsrPlugin_mcause_interrupt <= (! CsrPlugin_hadException);
@@ -14175,13 +16126,13 @@ module VexRiscv (
       memory_to_writeBack_MUL_HH <= memory_MUL_HH;
     end
     if((! execute_arbitration_isStuck))begin
-      decode_to_execute_MEMORY_ENABLE <= decode_MEMORY_ENABLE;
+      decode_to_execute_PC <= decode_PC;
     end
     if((! memory_arbitration_isStuck))begin
-      execute_to_memory_MEMORY_ENABLE <= execute_MEMORY_ENABLE;
+      execute_to_memory_PC <= _zz_52_;
     end
-    if((! writeBack_arbitration_isStuck))begin
-      memory_to_writeBack_MEMORY_ENABLE <= memory_MEMORY_ENABLE;
+    if(((! writeBack_arbitration_isStuck) && (! CsrPlugin_exceptionPortCtrl_exceptionValids_writeBack)))begin
+      memory_to_writeBack_PC <= memory_PC;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_REGFILE_WRITE_VALID <= decode_REGFILE_WRITE_VALID;
@@ -14281,9 +16232,6 @@ module VexRiscv (
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_CSR_WRITE_OPCODE <= decode_CSR_WRITE_OPCODE;
-    end
-    if((! memory_arbitration_isStuck))begin
-      execute_to_memory_BRANCH_CALC <= execute_BRANCH_CALC;
     end
     if((! execute_arbitration_isStuck))begin
       decode_to_execute_FORMAL_PC_NEXT <= _zz_104_;
@@ -14398,7 +16346,7 @@ module VexRiscv (
           DebugPlugin_haltedByBreak <= 1'b1;
         end
       end
-      if(_zz_231_)begin
+      if(_zz_232_)begin
         if(decode_arbitration_isValid)begin
           DebugPlugin_haltIt <= 1'b1;
         end
@@ -15792,6 +17740,220 @@ module Axi4SharedArbiter (
 endmodule
 
 module Axi4SharedArbiter_1_ (
+      input   io_sharedInputs_0_arw_valid,
+      output  io_sharedInputs_0_arw_ready,
+      input  [19:0] io_sharedInputs_0_arw_payload_addr,
+      input  [3:0] io_sharedInputs_0_arw_payload_id,
+      input  [7:0] io_sharedInputs_0_arw_payload_len,
+      input  [2:0] io_sharedInputs_0_arw_payload_size,
+      input  [1:0] io_sharedInputs_0_arw_payload_burst,
+      input   io_sharedInputs_0_arw_payload_write,
+      input   io_sharedInputs_0_w_valid,
+      output  io_sharedInputs_0_w_ready,
+      input  [31:0] io_sharedInputs_0_w_payload_data,
+      input  [3:0] io_sharedInputs_0_w_payload_strb,
+      input   io_sharedInputs_0_w_payload_last,
+      output  io_sharedInputs_0_b_valid,
+      input   io_sharedInputs_0_b_ready,
+      output [3:0] io_sharedInputs_0_b_payload_id,
+      output [1:0] io_sharedInputs_0_b_payload_resp,
+      output  io_sharedInputs_0_r_valid,
+      input   io_sharedInputs_0_r_ready,
+      output [31:0] io_sharedInputs_0_r_payload_data,
+      output [3:0] io_sharedInputs_0_r_payload_id,
+      output [1:0] io_sharedInputs_0_r_payload_resp,
+      output  io_sharedInputs_0_r_payload_last,
+      output  io_output_arw_valid,
+      input   io_output_arw_ready,
+      output [19:0] io_output_arw_payload_addr,
+      output [3:0] io_output_arw_payload_id,
+      output [7:0] io_output_arw_payload_len,
+      output [2:0] io_output_arw_payload_size,
+      output [1:0] io_output_arw_payload_burst,
+      output  io_output_arw_payload_write,
+      output  io_output_w_valid,
+      input   io_output_w_ready,
+      output [31:0] io_output_w_payload_data,
+      output [3:0] io_output_w_payload_strb,
+      output  io_output_w_payload_last,
+      input   io_output_b_valid,
+      output  io_output_b_ready,
+      input  [3:0] io_output_b_payload_id,
+      input  [1:0] io_output_b_payload_resp,
+      input   io_output_r_valid,
+      output  io_output_r_ready,
+      input  [31:0] io_output_r_payload_data,
+      input  [3:0] io_output_r_payload_id,
+      input  [1:0] io_output_r_payload_resp,
+      input   io_output_r_payload_last,
+      input   io_axiClk,
+      input   resetCtrl_axiReset);
+  reg  _zz_3_;
+  wire  _zz_4_;
+  wire  _zz_5_;
+  wire  cmdArbiter_io_inputs_0_ready;
+  wire  cmdArbiter_io_output_valid;
+  wire [19:0] cmdArbiter_io_output_payload_addr;
+  wire [3:0] cmdArbiter_io_output_payload_id;
+  wire [7:0] cmdArbiter_io_output_payload_len;
+  wire [2:0] cmdArbiter_io_output_payload_size;
+  wire [1:0] cmdArbiter_io_output_payload_burst;
+  wire  cmdArbiter_io_output_payload_write;
+  wire [0:0] cmdArbiter_io_chosenOH;
+  wire  streamFork_4__io_input_ready;
+  wire  streamFork_4__io_outputs_0_valid;
+  wire [19:0] streamFork_4__io_outputs_0_payload_addr;
+  wire [3:0] streamFork_4__io_outputs_0_payload_id;
+  wire [7:0] streamFork_4__io_outputs_0_payload_len;
+  wire [2:0] streamFork_4__io_outputs_0_payload_size;
+  wire [1:0] streamFork_4__io_outputs_0_payload_burst;
+  wire  streamFork_4__io_outputs_0_payload_write;
+  wire  streamFork_4__io_outputs_1_valid;
+  wire [19:0] streamFork_4__io_outputs_1_payload_addr;
+  wire [3:0] streamFork_4__io_outputs_1_payload_id;
+  wire [7:0] streamFork_4__io_outputs_1_payload_len;
+  wire [2:0] streamFork_4__io_outputs_1_payload_size;
+  wire [1:0] streamFork_4__io_outputs_1_payload_burst;
+  wire  streamFork_4__io_outputs_1_payload_write;
+  wire  streamFifoLowLatency_4__io_push_ready;
+  wire  streamFifoLowLatency_4__io_pop_valid;
+  wire [2:0] streamFifoLowLatency_4__io_occupancy;
+  wire  _zz_6_;
+  wire  inputsCmd_0_valid;
+  wire  inputsCmd_0_ready;
+  wire [19:0] inputsCmd_0_payload_addr;
+  wire [3:0] inputsCmd_0_payload_id;
+  wire [7:0] inputsCmd_0_payload_len;
+  wire [2:0] inputsCmd_0_payload_size;
+  wire [1:0] inputsCmd_0_payload_burst;
+  wire  inputsCmd_0_payload_write;
+  reg  _zz_1_;
+  wire  _zz_2_;
+  wire  writeLogic_routeDataInput_valid;
+  wire  writeLogic_routeDataInput_ready;
+  wire [31:0] writeLogic_routeDataInput_payload_data;
+  wire [3:0] writeLogic_routeDataInput_payload_strb;
+  wire  writeLogic_routeDataInput_payload_last;
+  wire  writeLogic_writeRspSels_0;
+  wire  readRspSels_0;
+  assign _zz_6_ = (! streamFork_4__io_outputs_1_payload_write);
+  StreamArbiter_1_ cmdArbiter ( 
+    .io_inputs_0_valid(inputsCmd_0_valid),
+    .io_inputs_0_ready(cmdArbiter_io_inputs_0_ready),
+    .io_inputs_0_payload_addr(inputsCmd_0_payload_addr),
+    .io_inputs_0_payload_id(inputsCmd_0_payload_id),
+    .io_inputs_0_payload_len(inputsCmd_0_payload_len),
+    .io_inputs_0_payload_size(inputsCmd_0_payload_size),
+    .io_inputs_0_payload_burst(inputsCmd_0_payload_burst),
+    .io_inputs_0_payload_write(inputsCmd_0_payload_write),
+    .io_output_valid(cmdArbiter_io_output_valid),
+    .io_output_ready(streamFork_4__io_input_ready),
+    .io_output_payload_addr(cmdArbiter_io_output_payload_addr),
+    .io_output_payload_id(cmdArbiter_io_output_payload_id),
+    .io_output_payload_len(cmdArbiter_io_output_payload_len),
+    .io_output_payload_size(cmdArbiter_io_output_payload_size),
+    .io_output_payload_burst(cmdArbiter_io_output_payload_burst),
+    .io_output_payload_write(cmdArbiter_io_output_payload_write),
+    .io_chosenOH(cmdArbiter_io_chosenOH),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  StreamFork_1_ streamFork_4_ ( 
+    .io_input_valid(cmdArbiter_io_output_valid),
+    .io_input_ready(streamFork_4__io_input_ready),
+    .io_input_payload_addr(cmdArbiter_io_output_payload_addr),
+    .io_input_payload_id(cmdArbiter_io_output_payload_id),
+    .io_input_payload_len(cmdArbiter_io_output_payload_len),
+    .io_input_payload_size(cmdArbiter_io_output_payload_size),
+    .io_input_payload_burst(cmdArbiter_io_output_payload_burst),
+    .io_input_payload_write(cmdArbiter_io_output_payload_write),
+    .io_outputs_0_valid(streamFork_4__io_outputs_0_valid),
+    .io_outputs_0_ready(io_output_arw_ready),
+    .io_outputs_0_payload_addr(streamFork_4__io_outputs_0_payload_addr),
+    .io_outputs_0_payload_id(streamFork_4__io_outputs_0_payload_id),
+    .io_outputs_0_payload_len(streamFork_4__io_outputs_0_payload_len),
+    .io_outputs_0_payload_size(streamFork_4__io_outputs_0_payload_size),
+    .io_outputs_0_payload_burst(streamFork_4__io_outputs_0_payload_burst),
+    .io_outputs_0_payload_write(streamFork_4__io_outputs_0_payload_write),
+    .io_outputs_1_valid(streamFork_4__io_outputs_1_valid),
+    .io_outputs_1_ready(_zz_3_),
+    .io_outputs_1_payload_addr(streamFork_4__io_outputs_1_payload_addr),
+    .io_outputs_1_payload_id(streamFork_4__io_outputs_1_payload_id),
+    .io_outputs_1_payload_len(streamFork_4__io_outputs_1_payload_len),
+    .io_outputs_1_payload_size(streamFork_4__io_outputs_1_payload_size),
+    .io_outputs_1_payload_burst(streamFork_4__io_outputs_1_payload_burst),
+    .io_outputs_1_payload_write(streamFork_4__io_outputs_1_payload_write),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  StreamFifoLowLatency_1_ streamFifoLowLatency_4_ ( 
+    .io_push_valid(_zz_1_),
+    .io_push_ready(streamFifoLowLatency_4__io_push_ready),
+    .io_pop_valid(streamFifoLowLatency_4__io_pop_valid),
+    .io_pop_ready(_zz_4_),
+    .io_flush(_zz_5_),
+    .io_occupancy(streamFifoLowLatency_4__io_occupancy),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
+  assign inputsCmd_0_valid = io_sharedInputs_0_arw_valid;
+  assign io_sharedInputs_0_arw_ready = inputsCmd_0_ready;
+  assign inputsCmd_0_payload_addr = io_sharedInputs_0_arw_payload_addr;
+  assign inputsCmd_0_payload_id = io_sharedInputs_0_arw_payload_id;
+  assign inputsCmd_0_payload_len = io_sharedInputs_0_arw_payload_len;
+  assign inputsCmd_0_payload_size = io_sharedInputs_0_arw_payload_size;
+  assign inputsCmd_0_payload_burst = io_sharedInputs_0_arw_payload_burst;
+  assign inputsCmd_0_payload_write = io_sharedInputs_0_arw_payload_write;
+  assign inputsCmd_0_ready = cmdArbiter_io_inputs_0_ready;
+  assign io_output_arw_valid = streamFork_4__io_outputs_0_valid;
+  assign io_output_arw_payload_addr = streamFork_4__io_outputs_0_payload_addr;
+  assign io_output_arw_payload_len = streamFork_4__io_outputs_0_payload_len;
+  assign io_output_arw_payload_size = streamFork_4__io_outputs_0_payload_size;
+  assign io_output_arw_payload_burst = streamFork_4__io_outputs_0_payload_burst;
+  assign io_output_arw_payload_write = streamFork_4__io_outputs_0_payload_write;
+  assign io_output_arw_payload_id = (streamFork_4__io_outputs_0_payload_write ? streamFork_4__io_outputs_0_payload_id : streamFork_4__io_outputs_0_payload_id);
+  always @ (*) begin
+    _zz_1_ = streamFork_4__io_outputs_1_valid;
+    if(_zz_6_)begin
+      _zz_1_ = 1'b0;
+    end
+  end
+
+  always @ (*) begin
+    _zz_3_ = _zz_2_;
+    if(_zz_6_)begin
+      _zz_3_ = 1'b1;
+    end
+  end
+
+  assign _zz_2_ = streamFifoLowLatency_4__io_push_ready;
+  assign writeLogic_routeDataInput_valid = io_sharedInputs_0_w_valid;
+  assign writeLogic_routeDataInput_ready = io_sharedInputs_0_w_ready;
+  assign writeLogic_routeDataInput_payload_data = io_sharedInputs_0_w_payload_data;
+  assign writeLogic_routeDataInput_payload_strb = io_sharedInputs_0_w_payload_strb;
+  assign writeLogic_routeDataInput_payload_last = io_sharedInputs_0_w_payload_last;
+  assign io_output_w_valid = (streamFifoLowLatency_4__io_pop_valid && writeLogic_routeDataInput_valid);
+  assign io_output_w_payload_data = writeLogic_routeDataInput_payload_data;
+  assign io_output_w_payload_strb = writeLogic_routeDataInput_payload_strb;
+  assign io_output_w_payload_last = writeLogic_routeDataInput_payload_last;
+  assign io_sharedInputs_0_w_ready = ((streamFifoLowLatency_4__io_pop_valid && io_output_w_ready) && 1'b1);
+  assign _zz_4_ = ((io_output_w_valid && io_output_w_ready) && io_output_w_payload_last);
+  assign writeLogic_writeRspSels_0 = 1'b1;
+  assign io_sharedInputs_0_b_valid = (io_output_b_valid && writeLogic_writeRspSels_0);
+  assign io_sharedInputs_0_b_payload_resp = io_output_b_payload_resp;
+  assign io_sharedInputs_0_b_payload_id = io_output_b_payload_id;
+  assign io_output_b_ready = io_sharedInputs_0_b_ready;
+  assign readRspSels_0 = 1'b1;
+  assign io_sharedInputs_0_r_valid = (io_output_r_valid && readRspSels_0);
+  assign io_sharedInputs_0_r_payload_data = io_output_r_payload_data;
+  assign io_sharedInputs_0_r_payload_resp = io_output_r_payload_resp;
+  assign io_sharedInputs_0_r_payload_last = io_output_r_payload_last;
+  assign io_sharedInputs_0_r_payload_id = io_output_r_payload_id;
+  assign io_output_r_ready = io_sharedInputs_0_r_ready;
+  assign _zz_5_ = 1'b0;
+endmodule
+
+module Axi4SharedArbiter_2_ (
       input   io_readInputs_0_ar_valid,
       output  io_readInputs_0_ar_ready,
       input  [26:0] io_readInputs_0_ar_payload_addr,
@@ -15945,7 +18107,7 @@ module Axi4SharedArbiter_1_ (
   assign _zz_10_ = (! streamFork_4__io_outputs_1_payload_write);
   assign _zz_11_ = streamFork_4__io_outputs_0_payload_id;
   assign _zz_12_ = {2'd0, _zz_11_};
-  StreamArbiter_1_ cmdArbiter ( 
+  StreamArbiter_2_ cmdArbiter ( 
     .io_inputs_0_valid(inputsCmd_0_valid),
     .io_inputs_0_ready(cmdArbiter_io_inputs_0_ready),
     .io_inputs_0_payload_addr(inputsCmd_0_payload_addr),
@@ -15983,7 +18145,7 @@ module Axi4SharedArbiter_1_ (
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
-  StreamFork_1_ streamFork_4_ ( 
+  StreamFork_2_ streamFork_4_ ( 
     .io_input_valid(cmdArbiter_io_output_valid),
     .io_input_ready(streamFork_4__io_input_ready),
     .io_input_payload_addr(cmdArbiter_io_output_payload_addr),
@@ -16124,220 +18286,6 @@ module Axi4SharedArbiter_1_ (
   assign io_sharedInputs_0_r_payload_id = io_output_r_payload_id[1:0];
   assign io_output_r_ready = _zz_9_;
   assign _zz_8_ = 1'b0;
-endmodule
-
-module Axi4SharedArbiter_2_ (
-      input   io_sharedInputs_0_arw_valid,
-      output  io_sharedInputs_0_arw_ready,
-      input  [19:0] io_sharedInputs_0_arw_payload_addr,
-      input  [3:0] io_sharedInputs_0_arw_payload_id,
-      input  [7:0] io_sharedInputs_0_arw_payload_len,
-      input  [2:0] io_sharedInputs_0_arw_payload_size,
-      input  [1:0] io_sharedInputs_0_arw_payload_burst,
-      input   io_sharedInputs_0_arw_payload_write,
-      input   io_sharedInputs_0_w_valid,
-      output  io_sharedInputs_0_w_ready,
-      input  [31:0] io_sharedInputs_0_w_payload_data,
-      input  [3:0] io_sharedInputs_0_w_payload_strb,
-      input   io_sharedInputs_0_w_payload_last,
-      output  io_sharedInputs_0_b_valid,
-      input   io_sharedInputs_0_b_ready,
-      output [3:0] io_sharedInputs_0_b_payload_id,
-      output [1:0] io_sharedInputs_0_b_payload_resp,
-      output  io_sharedInputs_0_r_valid,
-      input   io_sharedInputs_0_r_ready,
-      output [31:0] io_sharedInputs_0_r_payload_data,
-      output [3:0] io_sharedInputs_0_r_payload_id,
-      output [1:0] io_sharedInputs_0_r_payload_resp,
-      output  io_sharedInputs_0_r_payload_last,
-      output  io_output_arw_valid,
-      input   io_output_arw_ready,
-      output [19:0] io_output_arw_payload_addr,
-      output [3:0] io_output_arw_payload_id,
-      output [7:0] io_output_arw_payload_len,
-      output [2:0] io_output_arw_payload_size,
-      output [1:0] io_output_arw_payload_burst,
-      output  io_output_arw_payload_write,
-      output  io_output_w_valid,
-      input   io_output_w_ready,
-      output [31:0] io_output_w_payload_data,
-      output [3:0] io_output_w_payload_strb,
-      output  io_output_w_payload_last,
-      input   io_output_b_valid,
-      output  io_output_b_ready,
-      input  [3:0] io_output_b_payload_id,
-      input  [1:0] io_output_b_payload_resp,
-      input   io_output_r_valid,
-      output  io_output_r_ready,
-      input  [31:0] io_output_r_payload_data,
-      input  [3:0] io_output_r_payload_id,
-      input  [1:0] io_output_r_payload_resp,
-      input   io_output_r_payload_last,
-      input   io_axiClk,
-      input   resetCtrl_axiReset);
-  reg  _zz_3_;
-  wire  _zz_4_;
-  wire  _zz_5_;
-  wire  cmdArbiter_io_inputs_0_ready;
-  wire  cmdArbiter_io_output_valid;
-  wire [19:0] cmdArbiter_io_output_payload_addr;
-  wire [3:0] cmdArbiter_io_output_payload_id;
-  wire [7:0] cmdArbiter_io_output_payload_len;
-  wire [2:0] cmdArbiter_io_output_payload_size;
-  wire [1:0] cmdArbiter_io_output_payload_burst;
-  wire  cmdArbiter_io_output_payload_write;
-  wire [0:0] cmdArbiter_io_chosenOH;
-  wire  streamFork_4__io_input_ready;
-  wire  streamFork_4__io_outputs_0_valid;
-  wire [19:0] streamFork_4__io_outputs_0_payload_addr;
-  wire [3:0] streamFork_4__io_outputs_0_payload_id;
-  wire [7:0] streamFork_4__io_outputs_0_payload_len;
-  wire [2:0] streamFork_4__io_outputs_0_payload_size;
-  wire [1:0] streamFork_4__io_outputs_0_payload_burst;
-  wire  streamFork_4__io_outputs_0_payload_write;
-  wire  streamFork_4__io_outputs_1_valid;
-  wire [19:0] streamFork_4__io_outputs_1_payload_addr;
-  wire [3:0] streamFork_4__io_outputs_1_payload_id;
-  wire [7:0] streamFork_4__io_outputs_1_payload_len;
-  wire [2:0] streamFork_4__io_outputs_1_payload_size;
-  wire [1:0] streamFork_4__io_outputs_1_payload_burst;
-  wire  streamFork_4__io_outputs_1_payload_write;
-  wire  streamFifoLowLatency_4__io_push_ready;
-  wire  streamFifoLowLatency_4__io_pop_valid;
-  wire [2:0] streamFifoLowLatency_4__io_occupancy;
-  wire  _zz_6_;
-  wire  inputsCmd_0_valid;
-  wire  inputsCmd_0_ready;
-  wire [19:0] inputsCmd_0_payload_addr;
-  wire [3:0] inputsCmd_0_payload_id;
-  wire [7:0] inputsCmd_0_payload_len;
-  wire [2:0] inputsCmd_0_payload_size;
-  wire [1:0] inputsCmd_0_payload_burst;
-  wire  inputsCmd_0_payload_write;
-  reg  _zz_1_;
-  wire  _zz_2_;
-  wire  writeLogic_routeDataInput_valid;
-  wire  writeLogic_routeDataInput_ready;
-  wire [31:0] writeLogic_routeDataInput_payload_data;
-  wire [3:0] writeLogic_routeDataInput_payload_strb;
-  wire  writeLogic_routeDataInput_payload_last;
-  wire  writeLogic_writeRspSels_0;
-  wire  readRspSels_0;
-  assign _zz_6_ = (! streamFork_4__io_outputs_1_payload_write);
-  StreamArbiter_2_ cmdArbiter ( 
-    .io_inputs_0_valid(inputsCmd_0_valid),
-    .io_inputs_0_ready(cmdArbiter_io_inputs_0_ready),
-    .io_inputs_0_payload_addr(inputsCmd_0_payload_addr),
-    .io_inputs_0_payload_id(inputsCmd_0_payload_id),
-    .io_inputs_0_payload_len(inputsCmd_0_payload_len),
-    .io_inputs_0_payload_size(inputsCmd_0_payload_size),
-    .io_inputs_0_payload_burst(inputsCmd_0_payload_burst),
-    .io_inputs_0_payload_write(inputsCmd_0_payload_write),
-    .io_output_valid(cmdArbiter_io_output_valid),
-    .io_output_ready(streamFork_4__io_input_ready),
-    .io_output_payload_addr(cmdArbiter_io_output_payload_addr),
-    .io_output_payload_id(cmdArbiter_io_output_payload_id),
-    .io_output_payload_len(cmdArbiter_io_output_payload_len),
-    .io_output_payload_size(cmdArbiter_io_output_payload_size),
-    .io_output_payload_burst(cmdArbiter_io_output_payload_burst),
-    .io_output_payload_write(cmdArbiter_io_output_payload_write),
-    .io_chosenOH(cmdArbiter_io_chosenOH),
-    .io_axiClk(io_axiClk),
-    .resetCtrl_axiReset(resetCtrl_axiReset) 
-  );
-  StreamFork_2_ streamFork_4_ ( 
-    .io_input_valid(cmdArbiter_io_output_valid),
-    .io_input_ready(streamFork_4__io_input_ready),
-    .io_input_payload_addr(cmdArbiter_io_output_payload_addr),
-    .io_input_payload_id(cmdArbiter_io_output_payload_id),
-    .io_input_payload_len(cmdArbiter_io_output_payload_len),
-    .io_input_payload_size(cmdArbiter_io_output_payload_size),
-    .io_input_payload_burst(cmdArbiter_io_output_payload_burst),
-    .io_input_payload_write(cmdArbiter_io_output_payload_write),
-    .io_outputs_0_valid(streamFork_4__io_outputs_0_valid),
-    .io_outputs_0_ready(io_output_arw_ready),
-    .io_outputs_0_payload_addr(streamFork_4__io_outputs_0_payload_addr),
-    .io_outputs_0_payload_id(streamFork_4__io_outputs_0_payload_id),
-    .io_outputs_0_payload_len(streamFork_4__io_outputs_0_payload_len),
-    .io_outputs_0_payload_size(streamFork_4__io_outputs_0_payload_size),
-    .io_outputs_0_payload_burst(streamFork_4__io_outputs_0_payload_burst),
-    .io_outputs_0_payload_write(streamFork_4__io_outputs_0_payload_write),
-    .io_outputs_1_valid(streamFork_4__io_outputs_1_valid),
-    .io_outputs_1_ready(_zz_3_),
-    .io_outputs_1_payload_addr(streamFork_4__io_outputs_1_payload_addr),
-    .io_outputs_1_payload_id(streamFork_4__io_outputs_1_payload_id),
-    .io_outputs_1_payload_len(streamFork_4__io_outputs_1_payload_len),
-    .io_outputs_1_payload_size(streamFork_4__io_outputs_1_payload_size),
-    .io_outputs_1_payload_burst(streamFork_4__io_outputs_1_payload_burst),
-    .io_outputs_1_payload_write(streamFork_4__io_outputs_1_payload_write),
-    .io_axiClk(io_axiClk),
-    .resetCtrl_axiReset(resetCtrl_axiReset) 
-  );
-  StreamFifoLowLatency_1_ streamFifoLowLatency_4_ ( 
-    .io_push_valid(_zz_1_),
-    .io_push_ready(streamFifoLowLatency_4__io_push_ready),
-    .io_pop_valid(streamFifoLowLatency_4__io_pop_valid),
-    .io_pop_ready(_zz_4_),
-    .io_flush(_zz_5_),
-    .io_occupancy(streamFifoLowLatency_4__io_occupancy),
-    .io_axiClk(io_axiClk),
-    .resetCtrl_axiReset(resetCtrl_axiReset) 
-  );
-  assign inputsCmd_0_valid = io_sharedInputs_0_arw_valid;
-  assign io_sharedInputs_0_arw_ready = inputsCmd_0_ready;
-  assign inputsCmd_0_payload_addr = io_sharedInputs_0_arw_payload_addr;
-  assign inputsCmd_0_payload_id = io_sharedInputs_0_arw_payload_id;
-  assign inputsCmd_0_payload_len = io_sharedInputs_0_arw_payload_len;
-  assign inputsCmd_0_payload_size = io_sharedInputs_0_arw_payload_size;
-  assign inputsCmd_0_payload_burst = io_sharedInputs_0_arw_payload_burst;
-  assign inputsCmd_0_payload_write = io_sharedInputs_0_arw_payload_write;
-  assign inputsCmd_0_ready = cmdArbiter_io_inputs_0_ready;
-  assign io_output_arw_valid = streamFork_4__io_outputs_0_valid;
-  assign io_output_arw_payload_addr = streamFork_4__io_outputs_0_payload_addr;
-  assign io_output_arw_payload_len = streamFork_4__io_outputs_0_payload_len;
-  assign io_output_arw_payload_size = streamFork_4__io_outputs_0_payload_size;
-  assign io_output_arw_payload_burst = streamFork_4__io_outputs_0_payload_burst;
-  assign io_output_arw_payload_write = streamFork_4__io_outputs_0_payload_write;
-  assign io_output_arw_payload_id = (streamFork_4__io_outputs_0_payload_write ? streamFork_4__io_outputs_0_payload_id : streamFork_4__io_outputs_0_payload_id);
-  always @ (*) begin
-    _zz_1_ = streamFork_4__io_outputs_1_valid;
-    if(_zz_6_)begin
-      _zz_1_ = 1'b0;
-    end
-  end
-
-  always @ (*) begin
-    _zz_3_ = _zz_2_;
-    if(_zz_6_)begin
-      _zz_3_ = 1'b1;
-    end
-  end
-
-  assign _zz_2_ = streamFifoLowLatency_4__io_push_ready;
-  assign writeLogic_routeDataInput_valid = io_sharedInputs_0_w_valid;
-  assign writeLogic_routeDataInput_ready = io_sharedInputs_0_w_ready;
-  assign writeLogic_routeDataInput_payload_data = io_sharedInputs_0_w_payload_data;
-  assign writeLogic_routeDataInput_payload_strb = io_sharedInputs_0_w_payload_strb;
-  assign writeLogic_routeDataInput_payload_last = io_sharedInputs_0_w_payload_last;
-  assign io_output_w_valid = (streamFifoLowLatency_4__io_pop_valid && writeLogic_routeDataInput_valid);
-  assign io_output_w_payload_data = writeLogic_routeDataInput_payload_data;
-  assign io_output_w_payload_strb = writeLogic_routeDataInput_payload_strb;
-  assign io_output_w_payload_last = writeLogic_routeDataInput_payload_last;
-  assign io_sharedInputs_0_w_ready = ((streamFifoLowLatency_4__io_pop_valid && io_output_w_ready) && 1'b1);
-  assign _zz_4_ = ((io_output_w_valid && io_output_w_ready) && io_output_w_payload_last);
-  assign writeLogic_writeRspSels_0 = 1'b1;
-  assign io_sharedInputs_0_b_valid = (io_output_b_valid && writeLogic_writeRspSels_0);
-  assign io_sharedInputs_0_b_payload_resp = io_output_b_payload_resp;
-  assign io_sharedInputs_0_b_payload_id = io_output_b_payload_id;
-  assign io_output_b_ready = io_sharedInputs_0_b_ready;
-  assign readRspSels_0 = 1'b1;
-  assign io_sharedInputs_0_r_valid = (io_output_r_valid && readRspSels_0);
-  assign io_sharedInputs_0_r_payload_data = io_output_r_payload_data;
-  assign io_sharedInputs_0_r_payload_resp = io_output_r_payload_resp;
-  assign io_sharedInputs_0_r_payload_last = io_output_r_payload_last;
-  assign io_sharedInputs_0_r_payload_id = io_output_r_payload_id;
-  assign io_output_r_ready = io_sharedInputs_0_r_ready;
-  assign _zz_5_ = 1'b0;
 endmodule
 
 module Apb3Decoder (
@@ -16551,42 +18499,42 @@ module Briey (
       input   io_timerExternal_clear,
       input   io_timerExternal_tick,
       input   io_coreInterrupt);
-  wire [3:0] _zz_79_;
-  wire [3:0] _zz_80_;
-  wire [7:0] _zz_81_;
+  wire [3:0] _zz_81_;
   wire [3:0] _zz_82_;
   wire [7:0] _zz_83_;
-  wire  _zz_84_;
+  wire [3:0] _zz_84_;
   wire [7:0] _zz_85_;
   wire  _zz_86_;
-  wire  _zz_87_;
+  wire [7:0] _zz_87_;
   wire  _zz_88_;
   wire  _zz_89_;
-  reg  _zz_90_;
-  reg  _zz_91_;
-  wire  _zz_92_;
-  wire  _zz_93_;
+  wire  _zz_90_;
+  wire  _zz_91_;
+  reg  _zz_92_;
+  reg  _zz_93_;
   wire  _zz_94_;
   wire  _zz_95_;
   wire  _zz_96_;
   wire  _zz_97_;
   wire  _zz_98_;
-  wire [14:0] _zz_99_;
-  wire [2:0] _zz_100_;
+  wire  _zz_99_;
+  wire  _zz_100_;
   wire [14:0] _zz_101_;
-  wire [1:0] _zz_102_;
-  wire  _zz_103_;
-  wire [26:0] _zz_104_;
-  wire [2:0] _zz_105_;
-  wire [26:0] _zz_106_;
+  wire [2:0] _zz_102_;
+  wire [14:0] _zz_103_;
+  wire [1:0] _zz_104_;
+  wire  _zz_105_;
+  wire [19:0] _zz_106_;
   wire [1:0] _zz_107_;
   wire [26:0] _zz_108_;
-  wire [1:0] _zz_109_;
-  wire  _zz_110_;
-  wire [19:0] _zz_111_;
-  wire [1:0] _zz_112_;
-  wire  _zz_113_;
+  wire [2:0] _zz_109_;
+  wire [26:0] _zz_110_;
+  wire [1:0] _zz_111_;
+  wire [26:0] _zz_112_;
+  wire [1:0] _zz_113_;
   wire  _zz_114_;
+  wire  _zz_115_;
+  wire  _zz_116_;
   wire  bufferCC_13__io_dataOut;
   wire  bufferCC_14__io_dataOut;
   wire  axi_ram_io_axi_arw_ready;
@@ -16669,6 +18617,29 @@ module Briey (
   wire [4:0] axi_vgaCtrl_io_vga_color_r;
   wire [5:0] axi_vgaCtrl_io_vga_color_g;
   wire [4:0] axi_vgaCtrl_io_vga_color_b;
+  wire  axi_secureAccessCtrl_io_axi_arw_ready;
+  wire  axi_secureAccessCtrl_io_axi_w_ready;
+  wire  axi_secureAccessCtrl_io_axi_b_valid;
+  wire [3:0] axi_secureAccessCtrl_io_axi_b_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_b_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_r_valid;
+  wire [31:0] axi_secureAccessCtrl_io_axi_r_payload_data;
+  wire [3:0] axi_secureAccessCtrl_io_axi_r_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_r_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_r_payload_last;
+  wire  axi_secureAccessCtrl_io_sdramAxi_arw_valid;
+  wire [26:0] axi_secureAccessCtrl_io_sdramAxi_arw_payload_addr;
+  wire [3:0] axi_secureAccessCtrl_io_sdramAxi_arw_payload_id;
+  wire [7:0] axi_secureAccessCtrl_io_sdramAxi_arw_payload_len;
+  wire [2:0] axi_secureAccessCtrl_io_sdramAxi_arw_payload_size;
+  wire [1:0] axi_secureAccessCtrl_io_sdramAxi_arw_payload_burst;
+  wire  axi_secureAccessCtrl_io_sdramAxi_arw_payload_write;
+  wire  axi_secureAccessCtrl_io_sdramAxi_w_valid;
+  wire [31:0] axi_secureAccessCtrl_io_sdramAxi_w_payload_data;
+  wire [3:0] axi_secureAccessCtrl_io_sdramAxi_w_payload_strb;
+  wire  axi_secureAccessCtrl_io_sdramAxi_w_payload_last;
+  wire  axi_secureAccessCtrl_io_sdramAxi_b_ready;
+  wire  axi_secureAccessCtrl_io_sdramAxi_r_ready;
   wire  axi_core_cpu_debug_bus_cmd_ready;
   wire [31:0] axi_core_cpu_debug_bus_rsp_data;
   wire  axi_core_cpu_debug_resetOut;
@@ -16818,41 +18789,6 @@ module Briey (
   wire  axi_ram_io_axi_arbiter_io_output_w_payload_last;
   wire  axi_ram_io_axi_arbiter_io_output_b_ready;
   wire  axi_ram_io_axi_arbiter_io_output_r_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_ar_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_valid;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_data;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_id;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_resp;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_0_r_payload_last;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_valid;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_data;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_id;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_resp;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_last;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_arw_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_w_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_b_valid;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_b_payload_id;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_b_payload_resp;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_valid;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_data;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_id;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_resp;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_last;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_valid;
-  wire [26:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_addr;
-  wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_id;
-  wire [7:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_len;
-  wire [2:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_size;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_burst;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_write;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_valid;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data;
-  wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_b_ready;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_r_ready;
   wire  axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_arw_ready;
   wire  axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_w_ready;
   wire  axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_b_valid;
@@ -16876,6 +18812,41 @@ module Briey (
   wire  axi_apbBridge_io_axi_arbiter_io_output_w_payload_last;
   wire  axi_apbBridge_io_axi_arbiter_io_output_b_ready;
   wire  axi_apbBridge_io_axi_arbiter_io_output_r_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_ar_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_valid;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_data;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_last;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_valid;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_data;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_last;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_arw_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_w_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_b_valid;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_b_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_b_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_valid;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_data;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_id;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_resp;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_last;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_valid;
+  wire [26:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_addr;
+  wire [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_id;
+  wire [7:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_len;
+  wire [2:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_size;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_burst;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_write;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_valid;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_data;
+  wire [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_strb;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_last;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_b_ready;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_r_ready;
   wire  io_apb_decoder_io_input_PREADY;
   wire [31:0] io_apb_decoder_io_input_PRDATA;
   wire  io_apb_decoder_io_input_PSLVERROR;
@@ -16912,8 +18883,6 @@ module Briey (
   wire  apb3Router_1__io_outputs_4_PENABLE;
   wire  apb3Router_1__io_outputs_4_PWRITE;
   wire [31:0] apb3Router_1__io_outputs_4_PWDATA;
-  wire  _zz_115_;
-  wire  _zz_116_;
   wire  _zz_117_;
   wire  _zz_118_;
   wire  _zz_119_;
@@ -16922,6 +18891,8 @@ module Briey (
   wire  _zz_122_;
   wire  _zz_123_;
   wire  _zz_124_;
+  wire  _zz_125_;
+  wire  _zz_126_;
   reg  resetCtrl_systemResetUnbuffered;
   reg [5:0] resetCtrl_systemResetCounter = (6'b000000);
   wire [5:0] _zz_1_;
@@ -16942,6 +18913,13 @@ module Briey (
   wire  axi_core_iBus_r_payload_last;
   wire  _zz_2_;
   wire  _zz_3_;
+  wire  _zz_4_;
+  wire  _zz_5_;
+  reg  _zz_6_;
+  reg  _zz_7_;
+  reg [2:0] _zz_8_;
+  reg [2:0] _zz_9_;
+  wire [2:0] _zz_10_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
@@ -16950,13 +18928,13 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
-  reg  _zz_4_;
-  reg  _zz_5_;
-  reg [31:0] _zz_6_;
-  reg [31:0] _zz_7_;
-  reg [3:0] _zz_8_;
-  reg [2:0] _zz_9_;
-  reg  _zz_10_;
+  reg  _zz_11_;
+  reg  _zz_12_;
+  reg [31:0] _zz_13_;
+  reg [31:0] _zz_14_;
+  reg [3:0] _zz_15_;
+  reg [2:0] _zz_16_;
+  reg  _zz_17_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
@@ -16965,13 +18943,13 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
-  reg  _zz_11_;
-  reg  _zz_12_;
-  reg [31:0] _zz_13_;
-  reg [31:0] _zz_14_;
-  reg [3:0] _zz_15_;
-  reg [2:0] _zz_16_;
-  reg  _zz_17_;
+  reg  _zz_18_;
+  reg  _zz_19_;
+  reg [31:0] _zz_20_;
+  reg [31:0] _zz_21_;
+  reg [3:0] _zz_22_;
+  reg [2:0] _zz_23_;
+  reg  _zz_24_;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr;
@@ -16980,22 +18958,17 @@ module Briey (
   wire [3:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask;
   wire [2:0] axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length;
   wire  axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last;
-  reg  _zz_18_;
-  reg  _zz_19_;
-  reg [31:0] _zz_20_;
-  reg [31:0] _zz_21_;
-  reg [3:0] _zz_22_;
-  reg [2:0] _zz_23_;
-  reg  _zz_24_;
   reg  _zz_25_;
   reg  _zz_26_;
-  reg [2:0] _zz_27_;
-  reg [2:0] _zz_28_;
-  wire [2:0] _zz_29_;
-  wire  _zz_30_;
+  reg [31:0] _zz_27_;
+  reg [31:0] _zz_28_;
+  reg [3:0] _zz_29_;
+  reg [2:0] _zz_30_;
   reg  _zz_31_;
-  reg  _zz_32_;
+  wire  _zz_32_;
   reg  _zz_33_;
+  reg  _zz_34_;
+  reg  _zz_35_;
   wire  axi_core_dBus_arw_valid;
   wire  axi_core_dBus_arw_ready;
   wire [31:0] axi_core_dBus_arw_payload_addr;
@@ -17018,34 +18991,34 @@ module Briey (
   wire [1:0] axi_core_dBus_r_payload_resp;
   wire  axi_core_dBus_r_payload_last;
   reg  axi_core_cpu_debug_resetOut_regNext;
-  reg  _zz_34_;
-  wire  _zz_35_;
-  wire  _zz_36_;
-  reg  _zz_37_;
+  reg  _zz_36_;
+  wire  _zz_37_;
   wire  _zz_38_;
-  wire  _zz_39_;
-  reg  _zz_40_;
+  reg  _zz_39_;
+  wire  _zz_40_;
   wire  _zz_41_;
-  wire  _zz_42_;
-  reg  _zz_43_;
+  reg  _zz_42_;
+  wire  _zz_43_;
   wire  _zz_44_;
-  wire  _zz_45_;
-  reg  _zz_46_;
+  reg  _zz_45_;
+  wire  _zz_46_;
   wire  _zz_47_;
-  wire  _zz_48_;
-  reg  _zz_49_;
+  reg  _zz_48_;
+  wire  _zz_49_;
+  wire  _zz_50_;
+  reg  _zz_51_;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_valid;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_ready;
   wire [31:0] axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data;
   wire [1:0] axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp;
   wire  axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last;
-  reg  _zz_50_;
-  reg [31:0] _zz_51_;
-  reg [1:0] _zz_52_;
-  reg  _zz_53_;
-  wire  _zz_54_;
-  wire  _zz_55_;
-  reg  _zz_56_;
+  reg  _zz_52_;
+  reg [31:0] _zz_53_;
+  reg [1:0] _zz_54_;
+  reg  _zz_55_;
+  wire  _zz_56_;
+  wire  _zz_57_;
+  reg  _zz_58_;
   wire  axi_vgaCtrl_io_axi_ar_halfPipe_valid;
   wire  axi_vgaCtrl_io_axi_ar_halfPipe_ready;
   wire [31:0] axi_vgaCtrl_io_axi_ar_halfPipe_payload_addr;
@@ -17060,8 +19033,8 @@ module Briey (
   reg [2:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_size;
   reg [3:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_cache;
   reg [2:0] axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_prot;
-  wire [2:0] _zz_57_;
-  wire [2:0] _zz_58_;
+  wire [2:0] _zz_59_;
+  wire [2:0] _zz_60_;
   wire  axi_ram_io_axi_arbiter_io_output_arw_halfPipe_valid;
   wire  axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready;
   wire [14:0] axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
@@ -17083,57 +19056,20 @@ module Briey (
   wire [31:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
   wire [3:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
-  reg  _zz_59_;
-  reg [31:0] _zz_60_;
-  reg [3:0] _zz_61_;
-  reg  _zz_62_;
+  reg  _zz_61_;
+  reg [31:0] _zz_62_;
+  reg [3:0] _zz_63_;
+  reg  _zz_64_;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready;
   wire [31:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data;
   wire [3:0] axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb;
   wire  axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last;
-  reg  _zz_63_;
-  reg [31:0] _zz_64_;
-  reg [3:0] _zz_65_;
-  reg  _zz_66_;
-  wire [1:0] _zz_67_;
-  wire [1:0] _zz_68_;
-  wire [1:0] _zz_69_;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
-  wire [26:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
-  wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id;
-  wire [7:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_len;
-  wire [2:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_size;
-  wire [1:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write;
-  reg  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
-  reg  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready;
-  reg [26:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
-  reg [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
-  reg [7:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len;
-  reg [2:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_size;
-  reg [1:0] axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
-  reg  axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
-  wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
-  reg  _zz_70_;
-  reg [31:0] _zz_71_;
-  reg [3:0] _zz_72_;
-  reg  _zz_73_;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready;
-  wire [31:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data;
-  wire [3:0] axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb;
-  wire  axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last;
-  reg  _zz_74_;
-  reg [31:0] _zz_75_;
-  reg [3:0] _zz_76_;
-  reg  _zz_77_;
-  wire [3:0] _zz_78_;
+  reg  _zz_65_;
+  reg [31:0] _zz_66_;
+  reg [3:0] _zz_67_;
+  reg  _zz_68_;
+  wire [3:0] _zz_69_;
   wire  axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_valid;
   wire  axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_ready;
   wire [19:0] axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
@@ -17160,16 +19096,53 @@ module Briey (
   reg [31:0] axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_data;
   reg [3:0] axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_strb;
   reg  axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_last;
-  assign _zz_115_ = (resetCtrl_systemResetCounter != _zz_1_);
-  assign _zz_116_ = (! streamFork_4__io_outputs_1_payload_wr);
-  assign _zz_117_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready));
-  assign _zz_118_ = (! axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid);
-  assign _zz_119_ = (! axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
-  assign _zz_120_ = (_zz_103_ && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready));
-  assign _zz_121_ = (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
-  assign _zz_122_ = (_zz_110_ && (! axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready));
+  wire [1:0] _zz_70_;
+  wire [1:0] _zz_71_;
+  wire [1:0] _zz_72_;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
+  wire [26:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr;
+  wire [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id;
+  wire [7:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_len;
+  wire [2:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_size;
+  wire [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write;
+  reg  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
+  reg  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready;
+  reg [26:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
+  reg [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
+  reg [7:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len;
+  reg [2:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_size;
+  reg [1:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
+  reg  axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
+  wire [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
+  reg  _zz_73_;
+  reg [31:0] _zz_74_;
+  reg [3:0] _zz_75_;
+  reg  _zz_76_;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready;
+  wire [31:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data;
+  wire [3:0] axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb;
+  wire  axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last;
+  reg  _zz_77_;
+  reg [31:0] _zz_78_;
+  reg [3:0] _zz_79_;
+  reg  _zz_80_;
+  assign _zz_117_ = (resetCtrl_systemResetCounter != _zz_1_);
+  assign _zz_118_ = (! streamFork_4__io_outputs_1_payload_wr);
+  assign _zz_119_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready));
+  assign _zz_120_ = (! axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid);
+  assign _zz_121_ = (! axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
+  assign _zz_122_ = (_zz_105_ && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready));
   assign _zz_123_ = (! axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
   assign _zz_124_ = (! axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid);
+  assign _zz_125_ = (! axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid);
+  assign _zz_126_ = (_zz_114_ && (! axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready));
   BufferCC_10_ bufferCC_13_ ( 
     .io_dataIn(io_asyncReset),
     .io_dataOut(bufferCC_13__io_dataOut),
@@ -17208,25 +19181,25 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Axi4SharedSdramCtrl axi_sdramCtrl ( 
-    .io_axi_arw_valid(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid),
+    .io_axi_arw_valid(axi_secureAccessCtrl_io_sdramAxi_arw_valid),
     .io_axi_arw_ready(axi_sdramCtrl_io_axi_arw_ready),
-    .io_axi_arw_payload_addr(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr),
-    .io_axi_arw_payload_id(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id),
-    .io_axi_arw_payload_len(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_len),
-    .io_axi_arw_payload_size(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_size),
-    .io_axi_arw_payload_burst(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst),
-    .io_axi_arw_payload_write(axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write),
-    .io_axi_w_valid(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid),
+    .io_axi_arw_payload_addr(axi_secureAccessCtrl_io_sdramAxi_arw_payload_addr),
+    .io_axi_arw_payload_id(axi_secureAccessCtrl_io_sdramAxi_arw_payload_id),
+    .io_axi_arw_payload_len(axi_secureAccessCtrl_io_sdramAxi_arw_payload_len),
+    .io_axi_arw_payload_size(axi_secureAccessCtrl_io_sdramAxi_arw_payload_size),
+    .io_axi_arw_payload_burst(axi_secureAccessCtrl_io_sdramAxi_arw_payload_burst),
+    .io_axi_arw_payload_write(axi_secureAccessCtrl_io_sdramAxi_arw_payload_write),
+    .io_axi_w_valid(axi_secureAccessCtrl_io_sdramAxi_w_valid),
     .io_axi_w_ready(axi_sdramCtrl_io_axi_w_ready),
-    .io_axi_w_payload_data(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data),
-    .io_axi_w_payload_strb(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb),
-    .io_axi_w_payload_last(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last),
+    .io_axi_w_payload_data(axi_secureAccessCtrl_io_sdramAxi_w_payload_data),
+    .io_axi_w_payload_strb(axi_secureAccessCtrl_io_sdramAxi_w_payload_strb),
+    .io_axi_w_payload_last(axi_secureAccessCtrl_io_sdramAxi_w_payload_last),
     .io_axi_b_valid(axi_sdramCtrl_io_axi_b_valid),
-    .io_axi_b_ready(axi_sdramCtrl_io_axi_arbiter_io_output_b_ready),
+    .io_axi_b_ready(axi_secureAccessCtrl_io_sdramAxi_b_ready),
     .io_axi_b_payload_id(axi_sdramCtrl_io_axi_b_payload_id),
     .io_axi_b_payload_resp(axi_sdramCtrl_io_axi_b_payload_resp),
     .io_axi_r_valid(axi_sdramCtrl_io_axi_r_valid),
-    .io_axi_r_ready(axi_sdramCtrl_io_axi_arbiter_io_output_r_ready),
+    .io_axi_r_ready(axi_secureAccessCtrl_io_sdramAxi_r_ready),
     .io_axi_r_payload_data(axi_sdramCtrl_io_axi_r_payload_data),
     .io_axi_r_payload_id(axi_sdramCtrl_io_axi_r_payload_id),
     .io_axi_r_payload_resp(axi_sdramCtrl_io_axi_r_payload_resp),
@@ -17281,7 +19254,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3Gpio axi_gpioACtrl ( 
-    .io_apb_PADDR(_zz_79_),
+    .io_apb_PADDR(_zz_81_),
     .io_apb_PSEL(apb3Router_1__io_outputs_0_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_0_PENABLE),
     .io_apb_PREADY(axi_gpioACtrl_io_apb_PREADY),
@@ -17297,7 +19270,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3Gpio axi_gpioBCtrl ( 
-    .io_apb_PADDR(_zz_80_),
+    .io_apb_PADDR(_zz_82_),
     .io_apb_PSEL(apb3Router_1__io_outputs_1_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_1_PENABLE),
     .io_apb_PREADY(axi_gpioBCtrl_io_apb_PREADY),
@@ -17313,7 +19286,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   PinsecTimerCtrl axi_timerCtrl ( 
-    .io_apb_PADDR(_zz_81_),
+    .io_apb_PADDR(_zz_83_),
     .io_apb_PSEL(apb3Router_1__io_outputs_3_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_3_PENABLE),
     .io_apb_PREADY(axi_timerCtrl_io_apb_PREADY),
@@ -17328,7 +19301,7 @@ module Briey (
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   Apb3UartCtrl axi_uartCtrl ( 
-    .io_apb_PADDR(_zz_82_),
+    .io_apb_PADDR(_zz_84_),
     .io_apb_PSEL(apb3Router_1__io_outputs_2_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_2_PENABLE),
     .io_apb_PREADY(axi_uartCtrl_io_apb_PREADY),
@@ -17353,7 +19326,7 @@ module Briey (
     .io_axi_r_ready(axi_vgaCtrl_io_axi_r_ready),
     .io_axi_r_payload_data(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_data),
     .io_axi_r_payload_last(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_last),
-    .io_apb_PADDR(_zz_83_),
+    .io_apb_PADDR(_zz_85_),
     .io_apb_PSEL(apb3Router_1__io_outputs_4_PSEL),
     .io_apb_PENABLE(apb3Router_1__io_outputs_4_PENABLE),
     .io_apb_PREADY(axi_vgaCtrl_io_apb_PREADY),
@@ -17371,14 +19344,64 @@ module Briey (
     .io_vgaClk(io_vgaClk),
     .resetCtrl_vgaReset(resetCtrl_vgaReset) 
   );
+  Axi4SharedSecurityCtrl axi_secureAccessCtrl ( 
+    .io_axi_arw_valid(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid),
+    .io_axi_arw_ready(axi_secureAccessCtrl_io_axi_arw_ready),
+    .io_axi_arw_payload_addr(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr),
+    .io_axi_arw_payload_id(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id),
+    .io_axi_arw_payload_len(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_len),
+    .io_axi_arw_payload_size(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_size),
+    .io_axi_arw_payload_burst(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst),
+    .io_axi_arw_payload_write(axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write),
+    .io_axi_w_valid(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid),
+    .io_axi_w_ready(axi_secureAccessCtrl_io_axi_w_ready),
+    .io_axi_w_payload_data(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data),
+    .io_axi_w_payload_strb(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb),
+    .io_axi_w_payload_last(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last),
+    .io_axi_b_valid(axi_secureAccessCtrl_io_axi_b_valid),
+    .io_axi_b_ready(axi_secureAccessCtrl_io_axi_arbiter_io_output_b_ready),
+    .io_axi_b_payload_id(axi_secureAccessCtrl_io_axi_b_payload_id),
+    .io_axi_b_payload_resp(axi_secureAccessCtrl_io_axi_b_payload_resp),
+    .io_axi_r_valid(axi_secureAccessCtrl_io_axi_r_valid),
+    .io_axi_r_ready(axi_secureAccessCtrl_io_axi_arbiter_io_output_r_ready),
+    .io_axi_r_payload_data(axi_secureAccessCtrl_io_axi_r_payload_data),
+    .io_axi_r_payload_id(axi_secureAccessCtrl_io_axi_r_payload_id),
+    .io_axi_r_payload_resp(axi_secureAccessCtrl_io_axi_r_payload_resp),
+    .io_axi_r_payload_last(axi_secureAccessCtrl_io_axi_r_payload_last),
+    .io_sdramAxi_arw_valid(axi_secureAccessCtrl_io_sdramAxi_arw_valid),
+    .io_sdramAxi_arw_ready(axi_sdramCtrl_io_axi_arw_ready),
+    .io_sdramAxi_arw_payload_addr(axi_secureAccessCtrl_io_sdramAxi_arw_payload_addr),
+    .io_sdramAxi_arw_payload_id(axi_secureAccessCtrl_io_sdramAxi_arw_payload_id),
+    .io_sdramAxi_arw_payload_len(axi_secureAccessCtrl_io_sdramAxi_arw_payload_len),
+    .io_sdramAxi_arw_payload_size(axi_secureAccessCtrl_io_sdramAxi_arw_payload_size),
+    .io_sdramAxi_arw_payload_burst(axi_secureAccessCtrl_io_sdramAxi_arw_payload_burst),
+    .io_sdramAxi_arw_payload_write(axi_secureAccessCtrl_io_sdramAxi_arw_payload_write),
+    .io_sdramAxi_w_valid(axi_secureAccessCtrl_io_sdramAxi_w_valid),
+    .io_sdramAxi_w_ready(axi_sdramCtrl_io_axi_w_ready),
+    .io_sdramAxi_w_payload_data(axi_secureAccessCtrl_io_sdramAxi_w_payload_data),
+    .io_sdramAxi_w_payload_strb(axi_secureAccessCtrl_io_sdramAxi_w_payload_strb),
+    .io_sdramAxi_w_payload_last(axi_secureAccessCtrl_io_sdramAxi_w_payload_last),
+    .io_sdramAxi_b_valid(axi_sdramCtrl_io_axi_b_valid),
+    .io_sdramAxi_b_ready(axi_secureAccessCtrl_io_sdramAxi_b_ready),
+    .io_sdramAxi_b_payload_id(axi_sdramCtrl_io_axi_b_payload_id),
+    .io_sdramAxi_b_payload_resp(axi_sdramCtrl_io_axi_b_payload_resp),
+    .io_sdramAxi_r_valid(axi_sdramCtrl_io_axi_r_valid),
+    .io_sdramAxi_r_ready(axi_secureAccessCtrl_io_sdramAxi_r_ready),
+    .io_sdramAxi_r_payload_data(axi_sdramCtrl_io_axi_r_payload_data),
+    .io_sdramAxi_r_payload_id(axi_sdramCtrl_io_axi_r_payload_id),
+    .io_sdramAxi_r_payload_resp(axi_sdramCtrl_io_axi_r_payload_resp),
+    .io_sdramAxi_r_payload_last(axi_sdramCtrl_io_axi_r_payload_last),
+    .io_axiClk(io_axiClk),
+    .resetCtrl_axiReset(resetCtrl_axiReset) 
+  );
   VexRiscv axi_core_cpu ( 
     .timerInterrupt(axi_timerCtrl_io_interrupt),
     .externalInterrupt(bufferCC_15__io_dataOut),
-    .softwareInterrupt(_zz_84_),
+    .softwareInterrupt(_zz_86_),
     .debug_bus_cmd_valid(systemDebugger_1__io_mem_cmd_valid),
     .debug_bus_cmd_ready(axi_core_cpu_debug_bus_cmd_ready),
     .debug_bus_cmd_payload_wr(systemDebugger_1__io_mem_cmd_payload_wr),
-    .debug_bus_cmd_payload_address(_zz_85_),
+    .debug_bus_cmd_payload_address(_zz_87_),
     .debug_bus_cmd_payload_data(systemDebugger_1__io_mem_cmd_payload_data),
     .debug_bus_rsp_data(axi_core_cpu_debug_bus_rsp_data),
     .debug_resetOut(axi_core_cpu_debug_resetOut),
@@ -17388,9 +19411,9 @@ module Briey (
     .iBus_cmd_payload_size(axi_core_cpu_iBus_cmd_payload_size),
     .iBus_rsp_valid(axi_core_iBus_r_valid),
     .iBus_rsp_payload_data(axi_core_iBus_r_payload_data),
-    .iBus_rsp_payload_error(_zz_86_),
+    .iBus_rsp_payload_error(_zz_88_),
     .dBus_cmd_valid(axi_core_cpu_dBus_cmd_valid),
-    .dBus_cmd_ready(_zz_87_),
+    .dBus_cmd_ready(_zz_89_),
     .dBus_cmd_payload_wr(axi_core_cpu_dBus_cmd_payload_wr),
     .dBus_cmd_payload_address(axi_core_cpu_dBus_cmd_payload_address),
     .dBus_cmd_payload_data(axi_core_cpu_dBus_cmd_payload_data),
@@ -17399,13 +19422,13 @@ module Briey (
     .dBus_cmd_payload_last(axi_core_cpu_dBus_cmd_payload_last),
     .dBus_rsp_valid(axi_core_dBus_r_valid),
     .dBus_rsp_payload_data(axi_core_dBus_r_payload_data),
-    .dBus_rsp_payload_error(_zz_88_),
+    .dBus_rsp_payload_error(_zz_90_),
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset),
     .resetCtrl_systemReset(resetCtrl_systemReset) 
   );
   StreamFork_3_ streamFork_4_ ( 
-    .io_input_valid(_zz_89_),
+    .io_input_valid(_zz_91_),
     .io_input_ready(streamFork_4__io_input_ready),
     .io_input_payload_wr(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr),
     .io_input_payload_address(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address),
@@ -17414,7 +19437,7 @@ module Briey (
     .io_input_payload_length(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length),
     .io_input_payload_last(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last),
     .io_outputs_0_valid(streamFork_4__io_outputs_0_valid),
-    .io_outputs_0_ready(_zz_90_),
+    .io_outputs_0_ready(_zz_92_),
     .io_outputs_0_payload_wr(streamFork_4__io_outputs_0_payload_wr),
     .io_outputs_0_payload_address(streamFork_4__io_outputs_0_payload_address),
     .io_outputs_0_payload_data(streamFork_4__io_outputs_0_payload_data),
@@ -17422,7 +19445,7 @@ module Briey (
     .io_outputs_0_payload_length(streamFork_4__io_outputs_0_payload_length),
     .io_outputs_0_payload_last(streamFork_4__io_outputs_0_payload_last),
     .io_outputs_1_valid(streamFork_4__io_outputs_1_valid),
-    .io_outputs_1_ready(_zz_91_),
+    .io_outputs_1_ready(_zz_93_),
     .io_outputs_1_payload_wr(streamFork_4__io_outputs_1_payload_wr),
     .io_outputs_1_payload_address(streamFork_4__io_outputs_1_payload_address),
     .io_outputs_1_payload_data(streamFork_4__io_outputs_1_payload_data),
@@ -17469,7 +19492,7 @@ module Briey (
     .io_mem_cmd_payload_data(systemDebugger_1__io_mem_cmd_payload_data),
     .io_mem_cmd_payload_wr(systemDebugger_1__io_mem_cmd_payload_wr),
     .io_mem_cmd_payload_size(systemDebugger_1__io_mem_cmd_payload_size),
-    .io_mem_rsp_valid(_zz_34_),
+    .io_mem_rsp_valid(_zz_36_),
     .io_mem_rsp_payload(axi_core_cpu_debug_bus_rsp_data),
     .io_axiClk(io_axiClk),
     .resetCtrl_systemReset(resetCtrl_systemReset) 
@@ -17488,7 +19511,7 @@ module Briey (
     .io_input_r_payload_resp(axi_core_iBus_decoder_io_input_r_payload_resp),
     .io_input_r_payload_last(axi_core_iBus_decoder_io_input_r_payload_last),
     .io_outputs_0_ar_valid(axi_core_iBus_decoder_io_outputs_0_ar_valid),
-    .io_outputs_0_ar_ready(_zz_92_),
+    .io_outputs_0_ar_ready(_zz_94_),
     .io_outputs_0_ar_payload_addr(axi_core_iBus_decoder_io_outputs_0_ar_payload_addr),
     .io_outputs_0_ar_payload_len(axi_core_iBus_decoder_io_outputs_0_ar_payload_len),
     .io_outputs_0_ar_payload_burst(axi_core_iBus_decoder_io_outputs_0_ar_payload_burst),
@@ -17500,7 +19523,7 @@ module Briey (
     .io_outputs_0_r_payload_resp(axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_resp),
     .io_outputs_0_r_payload_last(axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_0_r_payload_last),
     .io_outputs_1_ar_valid(axi_core_iBus_decoder_io_outputs_1_ar_valid),
-    .io_outputs_1_ar_ready(_zz_93_),
+    .io_outputs_1_ar_ready(_zz_95_),
     .io_outputs_1_ar_payload_addr(axi_core_iBus_decoder_io_outputs_1_ar_payload_addr),
     .io_outputs_1_ar_payload_len(axi_core_iBus_decoder_io_outputs_1_ar_payload_len),
     .io_outputs_1_ar_payload_burst(axi_core_iBus_decoder_io_outputs_1_ar_payload_burst),
@@ -17532,12 +19555,12 @@ module Briey (
     .io_input_b_ready(axi_core_dBus_b_ready),
     .io_input_b_payload_resp(axi_core_dBus_decoder_io_input_b_payload_resp),
     .io_input_r_valid(axi_core_dBus_decoder_io_input_r_valid),
-    .io_input_r_ready(_zz_94_),
+    .io_input_r_ready(_zz_96_),
     .io_input_r_payload_data(axi_core_dBus_decoder_io_input_r_payload_data),
     .io_input_r_payload_resp(axi_core_dBus_decoder_io_input_r_payload_resp),
     .io_input_r_payload_last(axi_core_dBus_decoder_io_input_r_payload_last),
     .io_sharedOutputs_0_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_0_arw_valid),
-    .io_sharedOutputs_0_arw_ready(_zz_95_),
+    .io_sharedOutputs_0_arw_ready(_zz_97_),
     .io_sharedOutputs_0_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_addr),
     .io_sharedOutputs_0_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_len),
     .io_sharedOutputs_0_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_size),
@@ -17558,7 +19581,7 @@ module Briey (
     .io_sharedOutputs_0_r_payload_resp(axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_resp),
     .io_sharedOutputs_0_r_payload_last(axi_secureAccessCtrl_io_axi_arbiter_io_sharedInputs_0_r_payload_last),
     .io_sharedOutputs_1_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_1_arw_valid),
-    .io_sharedOutputs_1_arw_ready(_zz_96_),
+    .io_sharedOutputs_1_arw_ready(_zz_98_),
     .io_sharedOutputs_1_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr),
     .io_sharedOutputs_1_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_len),
     .io_sharedOutputs_1_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_size),
@@ -17579,7 +19602,7 @@ module Briey (
     .io_sharedOutputs_1_r_payload_resp(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_r_payload_resp),
     .io_sharedOutputs_1_r_payload_last(axi_apbBridge_io_axi_arbiter_io_sharedInputs_0_r_payload_last),
     .io_sharedOutputs_2_arw_valid(axi_core_dBus_decoder_io_sharedOutputs_2_arw_valid),
-    .io_sharedOutputs_2_arw_ready(_zz_97_),
+    .io_sharedOutputs_2_arw_ready(_zz_99_),
     .io_sharedOutputs_2_arw_payload_addr(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_addr),
     .io_sharedOutputs_2_arw_payload_len(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_len),
     .io_sharedOutputs_2_arw_payload_size(axi_core_dBus_decoder_io_sharedOutputs_2_arw_payload_size),
@@ -17615,16 +19638,16 @@ module Briey (
     .io_input_r_payload_data(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_data),
     .io_input_r_payload_last(axi_vgaCtrl_io_axi_decoder_io_input_r_payload_last),
     .io_outputs_0_ar_valid(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_valid),
-    .io_outputs_0_ar_ready(_zz_98_),
+    .io_outputs_0_ar_ready(_zz_100_),
     .io_outputs_0_ar_payload_addr(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_addr),
     .io_outputs_0_ar_payload_len(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_len),
     .io_outputs_0_ar_payload_size(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_size),
     .io_outputs_0_ar_payload_cache(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_cache),
     .io_outputs_0_ar_payload_prot(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_payload_prot),
-    .io_outputs_0_r_valid(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_valid),
+    .io_outputs_0_r_valid(axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_valid),
     .io_outputs_0_r_ready(axi_vgaCtrl_io_axi_decoder_io_outputs_0_r_ready),
-    .io_outputs_0_r_payload_data(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_data),
-    .io_outputs_0_r_payload_last(axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_r_payload_last),
+    .io_outputs_0_r_payload_data(axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_data),
+    .io_outputs_0_r_payload_last(axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_r_payload_last),
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
@@ -17674,7 +19697,7 @@ module Briey (
     .io_output_arw_payload_burst(axi_ram_io_axi_arbiter_io_output_arw_payload_burst),
     .io_output_arw_payload_write(axi_ram_io_axi_arbiter_io_output_arw_payload_write),
     .io_output_w_valid(axi_ram_io_axi_arbiter_io_output_w_valid),
-    .io_output_w_ready(_zz_103_),
+    .io_output_w_ready(_zz_105_),
     .io_output_w_payload_data(axi_ram_io_axi_arbiter_io_output_w_payload_data),
     .io_output_w_payload_strb(axi_ram_io_axi_arbiter_io_output_w_payload_strb),
     .io_output_w_payload_last(axi_ram_io_axi_arbiter_io_output_w_payload_last),
@@ -17867,7 +19890,7 @@ module Briey (
     .io_outputs_2_PWRITE(apb3Router_1__io_outputs_2_PWRITE),
     .io_outputs_2_PWDATA(apb3Router_1__io_outputs_2_PWDATA),
     .io_outputs_2_PRDATA(axi_uartCtrl_io_apb_PRDATA),
-    .io_outputs_2_PSLVERROR(_zz_113_),
+    .io_outputs_2_PSLVERROR(_zz_115_),
     .io_outputs_3_PADDR(apb3Router_1__io_outputs_3_PADDR),
     .io_outputs_3_PSEL(apb3Router_1__io_outputs_3_PSEL),
     .io_outputs_3_PENABLE(apb3Router_1__io_outputs_3_PENABLE),
@@ -17883,13 +19906,13 @@ module Briey (
     .io_outputs_4_PWRITE(apb3Router_1__io_outputs_4_PWRITE),
     .io_outputs_4_PWDATA(apb3Router_1__io_outputs_4_PWDATA),
     .io_outputs_4_PRDATA(axi_vgaCtrl_io_apb_PRDATA),
-    .io_outputs_4_PSLVERROR(_zz_114_),
+    .io_outputs_4_PSLVERROR(_zz_116_),
     .io_axiClk(io_axiClk),
     .resetCtrl_axiReset(resetCtrl_axiReset) 
   );
   always @ (*) begin
     resetCtrl_systemResetUnbuffered = 1'b0;
-    if(_zz_115_)begin
+    if(_zz_117_)begin
       resetCtrl_systemResetUnbuffered = 1'b1;
     end
   end
@@ -17902,107 +19925,109 @@ module Briey (
   assign axi_core_iBus_ar_payload_prot = (3'b110);
   assign axi_core_iBus_ar_payload_cache = (4'b1111);
   assign axi_core_iBus_ar_payload_burst = (2'b01);
-  assign _zz_86_ = (! (axi_core_iBus_r_payload_resp == (2'b00)));
+  assign _zz_88_ = (! (axi_core_iBus_r_payload_resp == (2'b00)));
   assign axi_core_iBus_r_ready = 1'b1;
-  assign _zz_87_ = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_ready);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_valid = _zz_4_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_wr = _zz_5_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_address = _zz_6_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_data = _zz_7_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_mask = _zz_8_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_length = _zz_9_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_last = _zz_10_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_ready = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid = _zz_11_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr = _zz_12_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address = _zz_13_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data = _zz_14_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask = _zz_15_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length = _zz_16_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last = _zz_17_;
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid || _zz_18_);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready = (! _zz_18_);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr = (_zz_18_ ? _zz_19_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address = (_zz_18_ ? _zz_20_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_data = (_zz_18_ ? _zz_21_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask = (_zz_18_ ? _zz_22_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length = (_zz_18_ ? _zz_23_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length);
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last = (_zz_18_ ? _zz_24_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last);
   always @ (*) begin
-    _zz_25_ = 1'b0;
-    if(((axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready) && axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr))begin
-      _zz_25_ = 1'b1;
+    _zz_6_ = 1'b0;
+    if(((_zz_2_ && _zz_3_) && _zz_4_))begin
+      _zz_6_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_26_ = 1'b0;
+    _zz_7_ = 1'b0;
     if((axi_core_dBus_b_valid && 1'b1))begin
-      _zz_26_ = 1'b1;
+      _zz_7_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    if((_zz_25_ && (! _zz_26_)))begin
-      _zz_28_ = (3'b001);
+    if((_zz_6_ && (! _zz_7_)))begin
+      _zz_9_ = (3'b001);
     end else begin
-      if(((! _zz_25_) && _zz_26_))begin
-        _zz_28_ = (3'b111);
+      if(((! _zz_6_) && _zz_7_))begin
+        _zz_9_ = (3'b111);
       end else begin
-        _zz_28_ = (3'b000);
+        _zz_9_ = (3'b000);
       end
     end
   end
 
-  assign _zz_29_ = (_zz_27_ + _zz_28_);
-  assign _zz_30_ = (! (((_zz_27_ != (3'b000)) && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr)) || (_zz_27_ == (3'b111))));
-  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready = (streamFork_4__io_input_ready && _zz_30_);
-  assign _zz_89_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && _zz_30_);
+  assign _zz_10_ = (_zz_8_ + _zz_9_);
+  assign _zz_89_ = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_ready);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_valid = _zz_11_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_wr = _zz_12_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_address = _zz_13_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_data = _zz_14_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_mask = _zz_15_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_length = _zz_16_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_payload_last = _zz_17_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_ready = ((1'b1 && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid)) || axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid = _zz_18_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr = _zz_19_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address = _zz_20_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data = _zz_21_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask = _zz_22_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length = _zz_23_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last = _zz_24_;
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid || _zz_25_);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_ready = (! _zz_25_);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr = (_zz_25_ ? _zz_26_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_address = (_zz_25_ ? _zz_27_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_data = (_zz_25_ ? _zz_28_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_mask = (_zz_25_ ? _zz_29_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_length = (_zz_25_ ? _zz_30_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length);
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_last = (_zz_25_ ? _zz_31_ : axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last);
+  assign _zz_32_ = (! (((_zz_8_ != (3'b000)) && (! axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_payload_wr)) || (_zz_8_ == (3'b111))));
+  assign axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready = (streamFork_4__io_input_ready && _zz_32_);
+  assign _zz_91_ = (axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_valid && _zz_32_);
   always @ (*) begin
-    _zz_32_ = streamFork_4__io_outputs_0_valid;
-    if(_zz_31_)begin
-      _zz_32_ = 1'b0;
+    _zz_34_ = streamFork_4__io_outputs_0_valid;
+    if(_zz_33_)begin
+      _zz_34_ = 1'b0;
     end
   end
 
   always @ (*) begin
-    _zz_90_ = _zz_2_;
-    if(_zz_31_)begin
-      _zz_90_ = 1'b1;
+    _zz_92_ = _zz_3_;
+    if(_zz_33_)begin
+      _zz_92_ = 1'b1;
     end
   end
 
   always @ (*) begin
-    _zz_33_ = streamFork_4__io_outputs_1_valid;
-    if(_zz_116_)begin
-      _zz_33_ = 1'b0;
+    _zz_35_ = streamFork_4__io_outputs_1_valid;
+    if(_zz_118_)begin
+      _zz_35_ = 1'b0;
     end
   end
 
   always @ (*) begin
-    _zz_91_ = _zz_3_;
-    if(_zz_116_)begin
-      _zz_91_ = 1'b1;
+    _zz_93_ = _zz_5_;
+    if(_zz_118_)begin
+      _zz_93_ = 1'b1;
     end
   end
 
-  assign _zz_88_ = (! (axi_core_dBus_r_payload_resp == (2'b00)));
-  assign axi_core_dBus_arw_valid = _zz_32_;
-  assign _zz_2_ = axi_core_dBus_arw_ready;
+  assign _zz_2_ = _zz_34_;
+  assign _zz_4_ = streamFork_4__io_outputs_0_payload_wr;
+  assign _zz_90_ = (! (axi_core_dBus_r_payload_resp == (2'b00)));
+  assign axi_core_dBus_arw_valid = _zz_2_;
+  assign _zz_3_ = axi_core_dBus_arw_ready;
   assign axi_core_dBus_arw_payload_addr = streamFork_4__io_outputs_0_payload_address;
   assign axi_core_dBus_arw_payload_len = {5'd0, streamFork_4__io_outputs_0_payload_length};
   assign axi_core_dBus_arw_payload_size = (3'b010);
   assign axi_core_dBus_arw_payload_cache = (4'b1111);
   assign axi_core_dBus_arw_payload_prot = (3'b010);
-  assign axi_core_dBus_arw_payload_write = streamFork_4__io_outputs_0_payload_wr;
-  assign axi_core_dBus_w_valid = _zz_33_;
-  assign _zz_3_ = axi_core_dBus_w_ready;
+  assign axi_core_dBus_arw_payload_write = _zz_4_;
+  assign axi_core_dBus_w_valid = _zz_35_;
+  assign _zz_5_ = axi_core_dBus_w_ready;
   assign axi_core_dBus_w_payload_data = streamFork_4__io_outputs_1_payload_data;
   assign axi_core_dBus_w_payload_strb = streamFork_4__io_outputs_1_payload_mask;
   assign axi_core_dBus_w_payload_last = streamFork_4__io_outputs_1_payload_last;
   assign axi_core_dBus_b_ready = 1'b1;
   assign axi_core_dBus_r_ready = 1'b1;
-  assign _zz_85_ = systemDebugger_1__io_mem_cmd_payload_address[7:0];
+  assign _zz_87_ = systemDebugger_1__io_mem_cmd_payload_address[7:0];
   assign io_jtag_tdo = jtagBridge_1__io_jtag_tdo;
   assign _zz_37_ = _zz_39_;
   assign _zz_94_ = (_zz_38_ && _zz_39_);
@@ -18028,19 +20053,19 @@ module Briey (
   assign axi_core_dBus_w_ready = axi_core_dBus_decoder_io_input_w_ready;
   assign axi_core_dBus_b_valid = axi_core_dBus_decoder_io_input_b_valid;
   assign axi_core_dBus_b_payload_resp = axi_core_dBus_decoder_io_input_b_payload_resp;
-  assign _zz_94_ = ((1'b1 && (! axi_core_dBus_decoder_io_input_r_m2sPipe_valid)) || axi_core_dBus_decoder_io_input_r_m2sPipe_ready);
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_valid = _zz_50_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data = _zz_51_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp = _zz_52_;
-  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last = _zz_53_;
+  assign _zz_96_ = ((1'b1 && (! axi_core_dBus_decoder_io_input_r_m2sPipe_valid)) || axi_core_dBus_decoder_io_input_r_m2sPipe_ready);
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_valid = _zz_52_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data = _zz_53_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp = _zz_54_;
+  assign axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last = _zz_55_;
   assign axi_core_dBus_r_valid = axi_core_dBus_decoder_io_input_r_m2sPipe_valid;
   assign axi_core_dBus_decoder_io_input_r_m2sPipe_ready = axi_core_dBus_r_ready;
   assign axi_core_dBus_r_payload_data = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_data;
   assign axi_core_dBus_r_payload_resp = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_resp;
   assign axi_core_dBus_r_payload_last = axi_core_dBus_decoder_io_input_r_m2sPipe_payload_last;
-  assign _zz_54_ = _zz_56_;
-  assign _zz_98_ = (_zz_55_ && _zz_56_);
-  assign _zz_55_ = axi_sdramCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
+  assign _zz_56_ = _zz_58_;
+  assign _zz_100_ = (_zz_57_ && _zz_58_);
+  assign _zz_57_ = axi_secureAccessCtrl_io_axi_arbiter_io_readInputs_1_ar_ready;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_valid = axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_addr = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_addr;
   assign axi_vgaCtrl_io_axi_ar_halfPipe_payload_len = axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_len;
@@ -18062,45 +20087,20 @@ module Briey (
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_burst = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_payload_write = axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
   assign axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready = axi_ram_io_axi_arw_ready;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_ram_io_axi_arbiter_io_output_w_valid || _zz_59_);
-  assign _zz_103_ = (! _zz_59_);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_59_ ? _zz_60_ : axi_ram_io_axi_arbiter_io_output_w_payload_data);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_59_ ? _zz_61_ : axi_ram_io_axi_arbiter_io_output_w_payload_strb);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_59_ ? _zz_62_ : axi_ram_io_axi_arbiter_io_output_w_payload_last);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_ram_io_axi_arbiter_io_output_w_valid || _zz_61_);
+  assign _zz_105_ = (! _zz_61_);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_61_ ? _zz_62_ : axi_ram_io_axi_arbiter_io_output_w_payload_data);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_61_ ? _zz_63_ : axi_ram_io_axi_arbiter_io_output_w_payload_strb);
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_61_ ? _zz_64_ : axi_ram_io_axi_arbiter_io_output_w_payload_last);
   assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready = ((1'b1 && (! axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid)) || axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready);
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_63_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_64_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_65_;
-  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_66_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_65_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_66_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_67_;
+  assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_68_;
   assign axi_ram_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready = axi_ram_io_axi_w_ready;
   assign _zz_106_ = axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr[19:0];
   assign _zz_69_[3 : 0] = (4'b0000);
   assign _zz_107_ = (2'b01);
-  assign _zz_108_ = axi_core_dBus_decoder_io_sharedOutputs_0_arw_payload_addr[26:0];
-  assign _zz_69_[1 : 0] = (2'b00);
-  assign _zz_109_ = (2'b01);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_valid = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_addr = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_id = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_len = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_size = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_size;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_burst = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_payload_write = axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready = axi_sdramCtrl_io_axi_arw_ready;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid = (axi_sdramCtrl_io_axi_arbiter_io_output_w_valid || _zz_70_);
-  assign _zz_110_ = (! _zz_70_);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data = (_zz_70_ ? _zz_71_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb = (_zz_70_ ? _zz_72_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last = (_zz_70_ ? _zz_73_ : axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready = ((1'b1 && (! axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid)) || axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready);
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_valid = _zz_74_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_data = _zz_75_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_strb = _zz_76_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_payload_last = _zz_77_;
-  assign axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_m2sPipe_ready = axi_sdramCtrl_io_axi_w_ready;
-  assign _zz_111_ = axi_core_dBus_decoder_io_sharedOutputs_1_arw_payload_addr[19:0];
-  assign _zz_78_[3 : 0] = (4'b0000);
-  assign _zz_112_ = (2'b01);
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_valid = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid;
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_addr = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr;
   assign axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_payload_id = axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id;
@@ -18170,9 +20170,9 @@ module Briey (
   assign io_vga_color_r = axi_vgaCtrl_io_vga_color_r;
   assign io_vga_color_g = axi_vgaCtrl_io_vga_color_g;
   assign io_vga_color_b = axi_vgaCtrl_io_vga_color_b;
-  assign _zz_84_ = 1'b0;
+  assign _zz_86_ = 1'b0;
   always @ (posedge io_axiClk) begin
-    if(_zz_115_)begin
+    if(_zz_117_)begin
       resetCtrl_systemResetCounter <= (resetCtrl_systemResetCounter + (6'b000001));
     end
     if(bufferCC_13__io_dataOut)begin
@@ -18190,96 +20190,96 @@ module Briey (
 
   always @ (posedge io_axiClk or posedge resetCtrl_axiReset) begin
     if (resetCtrl_axiReset) begin
-      _zz_4_ <= 1'b0;
+      _zz_8_ <= (3'b000);
       _zz_11_ <= 1'b0;
       _zz_18_ <= 1'b0;
-      _zz_27_ <= (3'b000);
-      _zz_31_ <= 1'b0;
-      _zz_37_ <= 1'b0;
-      _zz_40_ <= 1'b0;
-      _zz_43_ <= 1'b0;
-      _zz_46_ <= 1'b0;
-      _zz_49_ <= 1'b0;
-      _zz_50_ <= 1'b0;
-      _zz_56_ <= 1'b0;
+      _zz_25_ <= 1'b0;
+      _zz_33_ <= 1'b0;
+      _zz_39_ <= 1'b0;
+      _zz_42_ <= 1'b0;
+      _zz_45_ <= 1'b0;
+      _zz_48_ <= 1'b0;
+      _zz_51_ <= 1'b0;
+      _zz_52_ <= 1'b0;
+      _zz_58_ <= 1'b0;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= 1'b0;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= 1'b1;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
-      _zz_59_ <= 1'b0;
-      _zz_63_ <= 1'b0;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
-      _zz_70_ <= 1'b0;
-      _zz_74_ <= 1'b0;
+      _zz_61_ <= 1'b0;
+      _zz_65_ <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid <= 1'b0;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_ready <= 1'b1;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= 1'b0;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= 1'b1;
+      _zz_73_ <= 1'b0;
+      _zz_77_ <= 1'b0;
     end else begin
-      if(_zz_87_)begin
-        _zz_4_ <= axi_core_cpu_dBus_cmd_valid;
+      _zz_8_ <= _zz_10_;
+      if(_zz_89_)begin
+        _zz_11_ <= axi_core_cpu_dBus_cmd_valid;
       end
       if(axi_core_cpu_dBus_cmd_m2sPipe_ready)begin
-        _zz_11_ <= axi_core_cpu_dBus_cmd_m2sPipe_valid;
+        _zz_18_ <= axi_core_cpu_dBus_cmd_m2sPipe_valid;
       end
       if(axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_s2mPipe_ready)begin
-        _zz_18_ <= 1'b0;
+        _zz_25_ <= 1'b0;
       end
-      if(_zz_117_)begin
-        _zz_18_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
+      if(_zz_119_)begin
+        _zz_25_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_valid;
       end
-      _zz_27_ <= _zz_29_;
-      if((streamFork_4__io_outputs_0_valid && _zz_90_))begin
-        _zz_31_ <= (! streamFork_4__io_outputs_0_payload_last);
+      if((streamFork_4__io_outputs_0_valid && _zz_92_))begin
+        _zz_33_ <= (! streamFork_4__io_outputs_0_payload_last);
       end
       if(axi_core_iBus_decoder_io_outputs_0_ar_valid)begin
-        _zz_37_ <= 1'b1;
+        _zz_39_ <= 1'b1;
       end
-      if((_zz_35_ && _zz_36_))begin
-        _zz_37_ <= 1'b0;
+      if((_zz_37_ && _zz_38_))begin
+        _zz_39_ <= 1'b0;
       end
       if(axi_core_iBus_decoder_io_outputs_1_ar_valid)begin
-        _zz_40_ <= 1'b1;
+        _zz_42_ <= 1'b1;
       end
-      if((_zz_38_ && _zz_39_))begin
-        _zz_40_ <= 1'b0;
+      if((_zz_40_ && _zz_41_))begin
+        _zz_42_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_0_arw_valid)begin
-        _zz_43_ <= 1'b1;
+        _zz_45_ <= 1'b1;
       end
-      if((_zz_41_ && _zz_42_))begin
-        _zz_43_ <= 1'b0;
+      if((_zz_43_ && _zz_44_))begin
+        _zz_45_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_1_arw_valid)begin
-        _zz_46_ <= 1'b1;
+        _zz_48_ <= 1'b1;
       end
-      if((_zz_44_ && _zz_45_))begin
-        _zz_46_ <= 1'b0;
+      if((_zz_46_ && _zz_47_))begin
+        _zz_48_ <= 1'b0;
       end
       if(axi_core_dBus_decoder_io_sharedOutputs_2_arw_valid)begin
-        _zz_49_ <= 1'b1;
+        _zz_51_ <= 1'b1;
       end
-      if((_zz_47_ && _zz_48_))begin
-        _zz_49_ <= 1'b0;
+      if((_zz_49_ && _zz_50_))begin
+        _zz_51_ <= 1'b0;
       end
-      if(_zz_94_)begin
-        _zz_50_ <= axi_core_dBus_decoder_io_input_r_valid;
+      if(_zz_96_)begin
+        _zz_52_ <= axi_core_dBus_decoder_io_input_r_valid;
       end
       if(axi_vgaCtrl_io_axi_decoder_io_outputs_0_ar_valid)begin
-        _zz_56_ <= 1'b1;
+        _zz_58_ <= 1'b1;
       end
-      if((_zz_54_ && _zz_55_))begin
-        _zz_56_ <= 1'b0;
+      if((_zz_56_ && _zz_57_))begin
+        _zz_58_ <= 1'b0;
       end
-      if(_zz_118_)begin
+      if(_zz_120_)begin
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= axi_vgaCtrl_io_axi_ar_valid;
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= (! axi_vgaCtrl_io_axi_ar_valid);
       end else begin
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_valid <= (! axi_vgaCtrl_io_axi_ar_halfPipe_ready);
         axi_vgaCtrl_io_axi_ar_halfPipe_regs_ready <= axi_vgaCtrl_io_axi_ar_halfPipe_ready;
       end
-      if(_zz_119_)begin
+      if(_zz_121_)begin
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_ram_io_axi_arbiter_io_output_arw_valid;
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_ram_io_axi_arbiter_io_output_arw_valid);
       end else begin
@@ -18287,29 +20287,13 @@ module Briey (
         axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_ram_io_axi_arbiter_io_output_arw_halfPipe_ready;
       end
       if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_59_ <= 1'b0;
-      end
-      if(_zz_120_)begin
-        _zz_59_ <= axi_ram_io_axi_arbiter_io_output_w_valid;
-      end
-      if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_63_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid;
-      end
-      if(_zz_121_)begin
-        axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_valid;
-        axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_valid);
-      end else begin
-        axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= (! axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready);
-        axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
-      end
-      if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_70_ <= 1'b0;
+        _zz_61_ <= 1'b0;
       end
       if(_zz_122_)begin
-        _zz_70_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_valid;
+        _zz_61_ <= axi_ram_io_axi_arbiter_io_output_w_valid;
       end
-      if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-        _zz_74_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
+      if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
+        _zz_65_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_valid;
       end
       if(_zz_123_)begin
         axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_apbBridge_io_axi_arbiter_io_output_arw_valid;
@@ -18325,47 +20309,63 @@ module Briey (
         axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_valid <= (! axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_ready);
         axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_ready <= axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_ready;
       end
+      if(_zz_125_)begin
+        axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_valid;
+        axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= (! axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_valid);
+      end else begin
+        axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_valid <= (! axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready);
+        axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_ready <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_ready;
+      end
+      if(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
+        _zz_73_ <= 1'b0;
+      end
+      if(_zz_126_)begin
+        _zz_73_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_valid;
+      end
+      if(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
+        _zz_77_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_valid;
+      end
     end
   end
 
   always @ (posedge io_axiClk) begin
-    if(_zz_87_)begin
-      _zz_5_ <= axi_core_cpu_dBus_cmd_payload_wr;
-      _zz_6_ <= axi_core_cpu_dBus_cmd_payload_address;
-      _zz_7_ <= axi_core_cpu_dBus_cmd_payload_data;
-      _zz_8_ <= axi_core_cpu_dBus_cmd_payload_mask;
-      _zz_9_ <= axi_core_cpu_dBus_cmd_payload_length;
-      _zz_10_ <= axi_core_cpu_dBus_cmd_payload_last;
+    if(_zz_89_)begin
+      _zz_12_ <= axi_core_cpu_dBus_cmd_payload_wr;
+      _zz_13_ <= axi_core_cpu_dBus_cmd_payload_address;
+      _zz_14_ <= axi_core_cpu_dBus_cmd_payload_data;
+      _zz_15_ <= axi_core_cpu_dBus_cmd_payload_mask;
+      _zz_16_ <= axi_core_cpu_dBus_cmd_payload_length;
+      _zz_17_ <= axi_core_cpu_dBus_cmd_payload_last;
     end
     if(axi_core_cpu_dBus_cmd_m2sPipe_ready)begin
-      _zz_12_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
-      _zz_13_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_address;
-      _zz_14_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_data;
-      _zz_15_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
-      _zz_16_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
-      _zz_17_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
+      _zz_19_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_wr;
+      _zz_20_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_address;
+      _zz_21_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_data;
+      _zz_22_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_mask;
+      _zz_23_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_length;
+      _zz_24_ <= axi_core_cpu_dBus_cmd_m2sPipe_payload_last;
     end
-    if(_zz_117_)begin
-      _zz_19_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
-      _zz_20_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address;
-      _zz_21_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data;
-      _zz_22_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
-      _zz_23_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
-      _zz_24_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
+    if(_zz_119_)begin
+      _zz_26_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_wr;
+      _zz_27_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_address;
+      _zz_28_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_data;
+      _zz_29_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_mask;
+      _zz_30_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_length;
+      _zz_31_ <= axi_core_cpu_dBus_cmd_m2sPipe_m2sPipe_payload_last;
     end
-    if(_zz_94_)begin
-      _zz_51_ <= axi_core_dBus_decoder_io_input_r_payload_data;
-      _zz_52_ <= axi_core_dBus_decoder_io_input_r_payload_resp;
-      _zz_53_ <= axi_core_dBus_decoder_io_input_r_payload_last;
+    if(_zz_96_)begin
+      _zz_53_ <= axi_core_dBus_decoder_io_input_r_payload_data;
+      _zz_54_ <= axi_core_dBus_decoder_io_input_r_payload_resp;
+      _zz_55_ <= axi_core_dBus_decoder_io_input_r_payload_last;
     end
-    if(_zz_118_)begin
+    if(_zz_120_)begin
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_addr <= axi_vgaCtrl_io_axi_ar_payload_addr;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_len <= axi_vgaCtrl_io_axi_ar_payload_len;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_size <= axi_vgaCtrl_io_axi_ar_payload_size;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_cache <= axi_vgaCtrl_io_axi_ar_payload_cache;
       axi_vgaCtrl_io_axi_ar_halfPipe_regs_payload_prot <= axi_vgaCtrl_io_axi_ar_payload_prot;
     end
-    if(_zz_119_)begin
+    if(_zz_121_)begin
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_ram_io_axi_arbiter_io_output_arw_payload_addr;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_ram_io_axi_arbiter_io_output_arw_payload_id;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_ram_io_axi_arbiter_io_output_arw_payload_len;
@@ -18373,33 +20373,15 @@ module Briey (
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_ram_io_axi_arbiter_io_output_arw_payload_burst;
       axi_ram_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_ram_io_axi_arbiter_io_output_arw_payload_write;
     end
-    if(_zz_120_)begin
-      _zz_60_ <= axi_ram_io_axi_arbiter_io_output_w_payload_data;
-      _zz_61_ <= axi_ram_io_axi_arbiter_io_output_w_payload_strb;
-      _zz_62_ <= axi_ram_io_axi_arbiter_io_output_w_payload_last;
+    if(_zz_122_)begin
+      _zz_62_ <= axi_ram_io_axi_arbiter_io_output_w_payload_data;
+      _zz_63_ <= axi_ram_io_axi_arbiter_io_output_w_payload_strb;
+      _zz_64_ <= axi_ram_io_axi_arbiter_io_output_w_payload_last;
     end
     if(axi_ram_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-      _zz_64_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
-      _zz_65_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
-      _zz_66_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
-    end
-    if(_zz_121_)begin
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_addr;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_id;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_len;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_size <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_size;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_burst;
-      axi_sdramCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_sdramCtrl_io_axi_arbiter_io_output_arw_payload_write;
-    end
-    if(_zz_122_)begin
-      _zz_71_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_data;
-      _zz_72_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_strb;
-      _zz_73_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_payload_last;
-    end
-    if(axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
-      _zz_75_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
-      _zz_76_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
-      _zz_77_ <= axi_sdramCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
+      _zz_66_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
+      _zz_67_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
+      _zz_68_ <= axi_ram_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
     end
     if(_zz_123_)begin
       axi_apbBridge_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_apbBridge_io_axi_arbiter_io_output_arw_payload_addr;
@@ -18414,6 +20396,24 @@ module Briey (
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_strb <= axi_apbBridge_io_axi_arbiter_io_output_w_payload_strb;
       axi_apbBridge_io_axi_arbiter_io_output_w_halfPipe_regs_payload_last <= axi_apbBridge_io_axi_arbiter_io_output_w_payload_last;
     end
+    if(_zz_125_)begin
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_addr <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_addr;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_id <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_id;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_len <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_len;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_size <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_size;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_burst <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_burst;
+      axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_halfPipe_regs_payload_write <= axi_secureAccessCtrl_io_axi_arbiter_io_output_arw_payload_write;
+    end
+    if(_zz_126_)begin
+      _zz_74_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_data;
+      _zz_75_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_strb;
+      _zz_76_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_payload_last;
+    end
+    if(axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_ready)begin
+      _zz_78_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_data;
+      _zz_79_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_strb;
+      _zz_80_ <= axi_secureAccessCtrl_io_axi_arbiter_io_output_w_s2mPipe_payload_last;
+    end
   end
 
   always @ (posedge io_axiClk) begin
@@ -18422,9 +20422,9 @@ module Briey (
 
   always @ (posedge io_axiClk or posedge resetCtrl_systemReset) begin
     if (resetCtrl_systemReset) begin
-      _zz_34_ <= 1'b0;
+      _zz_36_ <= 1'b0;
     end else begin
-      _zz_34_ <= (systemDebugger_1__io_mem_cmd_valid && axi_core_cpu_debug_bus_cmd_ready);
+      _zz_36_ <= (systemDebugger_1__io_mem_cmd_valid && axi_core_cpu_debug_bus_cmd_ready);
     end
   end
 
