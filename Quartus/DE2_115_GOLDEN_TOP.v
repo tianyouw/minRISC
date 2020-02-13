@@ -449,7 +449,7 @@ wire [31:0] io_sdram_DQ_write;
 wire io_sdram_DQ_writeEnable;
 wire [4:0] io_gpioA_write_unused;
 
-wire vga_clock;
+//wire vga_clock;
 //wire vga_color_en_tmp;
 //wire [4:0] io_vga_r;
 //wire [5:0] io_vga_g; 
@@ -514,7 +514,7 @@ vga25_pll vga_pll (
 Briey soc (
       .io_asyncReset(~KEY[0]),
       .io_axiClk(sysClock),
-      .io_vgaClk(VGA_CLK),                               // VGA disabled
+      .io_vgaClk(VGA_CLK),
       .io_jtag_tms(),                                    // JTAG disabled
       .io_jtag_tdi(),
       .io_jtag_tdo(),
@@ -534,14 +534,14 @@ Briey soc (
       .io_gpioA_write({io_gpioA_write_unused[4:0],
                        LEDG[8],
                        LEDR[17:0]}),
-                       //LEDG[7:0]}),                 // 5 bits unconnected
+                       //LEDG[7:0]}),                    // 5 bits unconnected
       .io_gpioA_writeEnable(),                           // Unused
       .io_gpioB_read(32'd0),                             // GPIO B unused
       .io_gpioB_write(),
       .io_gpioB_writeEnable(),
       .io_uart_txd(UART_TXD),
       .io_uart_rxd(UART_RXD),
-		.io_vga_vSync(VGA_VS),
+      .io_vga_vSync(VGA_VS),
       .io_vga_hSync(VGA_HS),
       .io_vga_colorEn(VGA_BLANK_N),
       .io_vga_color_r(VGA_R[4:0]),
