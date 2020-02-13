@@ -1129,7 +1129,7 @@ set_global_assignment -name EDA_INPUT_DATA_FORMAT EDIF -section_id eda_design_sy
 set_global_assignment -name SEARCH_PATH sys_pll/synthesis/submodules
 set_global_assignment -name SEARCH_PATH sys_pll/synthesis
 set_global_assignment -name SEARCH_PATH sys_pll
-set_global_assignment -name OPTIMIZATION_MODE BALANCED
+set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE PERFORMANCE"
 set_global_assignment -name IP_SEARCH_PATHS "c:\\joy\\code\\minrisc\\quartus"
 set_global_assignment -name QSYS_FILE sys_pll.qsys
 set_global_assignment -name VERILOG_FILE Briey.v
